@@ -1,0 +1,16 @@
+{
+  "name": "naukri-e2e",
+  "private": true,
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@types/node": "^26.1.1",
+    "exceljs": "^4.4.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "naukri-automator": "file:.."
+  }
+}

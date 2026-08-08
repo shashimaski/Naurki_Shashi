@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NaukriAutomator — Execution Summary</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --bg-0:#050810; --bg-1:#0a0f1c; --bg-2:#111729;
+  --bg-card:rgba(20,27,45,0.55);
+  --border:rgba(0,212,255,0.18); --border-strong:rgba(0,212,255,0.45);
+  --text:#e6edf3; --muted:#8b9bb4;
+  --neon-cyan:#00d4ff; --neon-magenta:#ff2a6d; --neon-lime:#39ff14;
+  --neon-violet:#b56bff; --neon-amber:#ffb800;
+  --glow-cyan:0 0 12px rgba(0,212,255,0.55),0 0 24px rgba(0,212,255,0.25);
+  --shadow-card:0 8px 32px rgba(0,0,0,0.5),0 1px 2px rgba(0,212,255,0.08);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;font-family:'Inter',sans-serif;background:var(--bg-0);color:var(--text);line-height:1.6;overflow-x:hidden;}
+body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.04) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,black 40%,transparent 100%);}
+body::after{content:"";position:fixed;inset:0;background:radial-gradient(ellipse 600px 400px at 15% 10%,rgba(0,212,255,0.12),transparent 60%),radial-gradient(ellipse 500px 400px at 85% 90%,rgba(255,42,109,0.08),transparent 60%),radial-gradient(ellipse 700px 500px at 50% 50%,rgba(181,107,255,0.05),transparent 70%);pointer-events:none;z-index:0;}
+#app{position:relative;z-index:1;}
+.top-progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:2000;background:rgba(255,255,255,0.03);}
+.top-progress>span{display:block;height:100%;background:linear-gradient(90deg,var(--neon-cyan),var(--neon-magenta),var(--neon-violet));background-size:200% 100%;animation:shimmer 4s linear infinite;box-shadow:var(--glow-cyan);transition:width 300ms ease;}
+@keyframes shimmer{0%{background-position:0% 0;}100%{background-position:200% 0;}}
+.topbar{position:sticky;top:0;z-index:1050;background:rgba(5,8,16,0.85);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:16px;}
+.brand{font-family:'Orbitron',monospace;font-weight:900;font-size:16px;letter-spacing:2px;text-transform:uppercase;background:linear-gradient(90deg,var(--neon-cyan),var(--neon-magenta));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:var(--glow-cyan);display:flex;align-items:center;gap:10px;}
+.brand i{color:var(--neon-cyan);font-size:20px;text-shadow:var(--glow-cyan);}
+.crumb{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;}
+.crumb .sep{color:var(--neon-cyan);opacity:0.5;}
+.crumb .curr{color:var(--neon-cyan);text-shadow:0 0 8px rgba(0,212,255,0.5);}
+.topbar .actions{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.pill-counter{font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px 10px;background:rgba(0,212,255,0.08);border:1px solid var(--border-strong);border-radius:12px;color:var(--neon-cyan);}
+.btn-neon{background:transparent;border:1px solid var(--border-strong);color:var(--neon-cyan);padding:5px 12px;font-size:12px;font-family:'JetBrains Mono',monospace;border-radius:6px;cursor:pointer;transition:all 150ms;}
+.btn-neon:hover{background:rgba(0,212,255,0.12);box-shadow:var(--glow-cyan);color:#fff;}
+.btn-neon:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-neon:disabled:hover{background:transparent;box-shadow:none;}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 60px);}
+@media(max-width:992px){.layout{grid-template-columns:1fr;}.sidebar{display:none;}}
+.sidebar{position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;border-right:1px solid var(--border);background:rgba(10,15,28,0.55);backdrop-filter:blur(12px);padding:20px 12px;}
+.sidebar::-webkit-scrollbar{width:6px;}
+.sidebar::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.2);border-radius:3px;}
+.sidebar-group{margin-bottom:18px;}
+.sidebar-group-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;padding:8px 12px 6px;display:flex;align-items:center;gap:8px;}
+.sidebar-group-label::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--neon-cyan);box-shadow:var(--glow-cyan);}
+.nav-item-btn{display:flex;align-items:center;gap:10px;width:100%;padding:8px 12px;background:transparent;border:1px solid transparent;border-left:2px solid transparent;color:var(--text);font-size:13px;text-align:left;cursor:pointer;border-radius:0 6px 6px 0;font-family:inherit;transition:all 150ms;}
+.nav-item-btn:hover{background:rgba(0,212,255,0.06);border-left-color:var(--neon-cyan);color:var(--neon-cyan);}
+.nav-item-btn.active{background:linear-gradient(90deg,rgba(0,212,255,0.18),transparent);border-left-color:var(--neon-cyan);color:var(--neon-cyan);text-shadow:0 0 8px rgba(0,212,255,0.4);}
+.nav-item-btn .num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);min-width:28px;padding:2px 6px;border:1px solid var(--border);border-radius:3px;text-align:center;}
+.nav-item-btn.active .num{background:var(--neon-cyan);color:var(--bg-0);border-color:var(--neon-cyan);font-weight:700;}
+.nav-item-btn i{color:var(--muted);width:16px;}
+.nav-item-btn.active i{color:var(--neon-cyan);}
+.content{padding:32px 40px 80px;max-width:1280px;}
+@media(max-width:768px){.content{padding:20px 16px 60px;}}
+.page{display:none;animation:pageIn 350ms cubic-bezier(.22,.61,.36,1);}
+.page.active{display:block;}
+@keyframes pageIn{from{opacity:0;transform:translateY(12px) scale(0.99);}to{opacity:1;transform:none;}}
+.page-head{display:flex;align-items:flex-end;gap:16px;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:26px;}
+.page-head .badge-num{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:2px;padding:4px 10px;color:var(--neon-cyan);background:rgba(0,212,255,0.08);border:1px solid var(--border-strong);border-radius:4px;}
+.page-head h2{margin:0;font-family:'Inter',sans-serif;font-weight:800;font-size:30px;letter-spacing:-0.5px;}
+.page-head h2 .accent{background:linear-gradient(90deg,var(--neon-cyan),var(--neon-violet));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.page-sub{color:var(--muted);margin-top:8px;}
+.card-glass{background:var(--bg-card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin:14px 0;box-shadow:var(--shadow-card);position:relative;}
+.card-glass::before{content:"";position:absolute;inset:0;border-radius:12px;padding:1px;background:linear-gradient(135deg,rgba(0,212,255,0.25),transparent 30%,transparent 70%,rgba(255,42,109,0.18));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
+.card-glass>*{position:relative;}
+.card-glass h3,.card-glass h4{margin-top:0;}
+h3{font-family:'Inter',sans-serif;font-size:19px;font-weight:700;margin:28px 0 10px;display:flex;align-items:center;gap:10px;}
+h3::before{content:"";width:4px;height:18px;background:linear-gradient(180deg,var(--neon-cyan),var(--neon-violet));border-radius:2px;box-shadow:var(--glow-cyan);}
+h4{font-size:14px;color:var(--neon-cyan);font-weight:600;margin-top:18px;font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;}
+p{margin:8px 0;}
+strong{color:#fff;font-weight:600;}
+ul,ol{padding-left:22px;}
+ul li::marker{color:var(--neon-cyan);}
+ol li::marker{color:var(--neon-magenta);font-weight:700;}
+code{background:rgba(0,212,255,0.08);border:1px solid var(--border);padding:1px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--neon-cyan);}
+pre{background:linear-gradient(180deg,rgba(0,0,0,0.4),rgba(0,212,255,0.02));border:1px solid var(--border);border-left:3px solid var(--neon-cyan);border-radius:8px;padding:14px 16px;overflow-x:auto;font-size:12.5px;font-family:'JetBrains Mono',monospace;line-height:1.55;color:#c9d1d9;box-shadow:inset 0 0 30px rgba(0,212,255,0.03);}
+pre code{background:transparent;border:none;padding:0;color:inherit;}
+.tbl-wrap{overflow-x:auto;margin:14px 0;border-radius:10px;border:1px solid var(--border);}
+table{border-collapse:collapse;width:100%;font-size:13.5px;}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border);}
+th{background:rgba(0,212,255,0.06);color:var(--neon-cyan);font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;border-bottom:2px solid var(--border-strong);}
+tbody tr{transition:background 120ms;}
+tbody tr:hover{background:rgba(0,212,255,0.04);}
+tbody tr:last-child td{border-bottom:none;}
+.diagram{background:linear-gradient(180deg,rgba(10,15,28,0.7),rgba(5,8,16,0.7));border:1px solid var(--border);border-radius:14px;padding:22px;margin:22px 0;overflow:hidden;position:relative;}
+.diagram::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--neon-cyan),var(--neon-magenta),transparent);opacity:0.6;}
+.diagram .dgm-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.diagram .dgm-tag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1.5px;color:var(--neon-cyan);background:rgba(0,212,255,0.1);border:1px solid var(--border-strong);padding:3px 8px;border-radius:3px;text-transform:uppercase;}
+.diagram .dgm-caption{font-size:12px;color:var(--muted);font-style:italic;}
+.diagram .mermaid{display:flex;justify-content:center;background:transparent;overflow-x:auto;padding:8px 4px;}
+.diagram .mermaid svg{max-width:100%;height:auto !important;}
+.hero{position:relative;padding:48px 0 24px;text-align:center;}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:3px;color:var(--neon-cyan);padding:6px 14px;border:1px solid var(--border-strong);border-radius:20px;background:rgba(0,212,255,0.05);text-transform:uppercase;margin-bottom:24px;}
+.hero-eyebrow i{color:var(--neon-magenta);}
+.hero h1{font-family:'Orbitron',monospace;font-weight:900;font-size:clamp(32px,5vw,56px);line-height:1.05;margin:0 0 16px;letter-spacing:-1px;}
+.hero h1 .grad{background:linear-gradient(90deg,var(--neon-cyan) 0%,#fff 30%,var(--neon-magenta) 70%,var(--neon-violet) 100%);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:gradMove 6s linear infinite;}
+@keyframes gradMove{0%{background-position:0% 50%;}100%{background-position:200% 50%;}}
+.hero p.lead{color:var(--muted);font-size:17px;max-width:760px;margin:0 auto 28px;}
+.hero-meta{display:inline-flex;gap:18px;flex-wrap:wrap;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:36px;}
+.hero-meta span{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,0.02);}
+.hero-meta i{color:var(--neon-cyan);}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:980px;margin:0 auto 40px;}
+@media(max-width:768px){.stat-grid{grid-template-columns:repeat(2,1fr);}}
+.stat-card{background:var(--bg-card);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:14px;padding:22px 18px;position:relative;overflow:hidden;transition:transform 200ms,box-shadow 200ms;}
+.stat-card::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,var(--col,var(--neon-cyan)) 0%,transparent 60%);opacity:0.07;pointer-events:none;}
+.stat-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,212,255,0.18);}
+.stat-card .stat-icon{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:color-mix(in srgb,var(--col,var(--neon-cyan)) 14%,transparent);border:1px solid color-mix(in srgb,var(--col,var(--neon-cyan)) 40%,transparent);color:var(--col,var(--neon-cyan));font-size:16px;margin-bottom:12px;}
+.stat-card .stat-num{font-family:'Orbitron',monospace;font-size:40px;font-weight:900;line-height:1;color:var(--col,var(--neon-cyan));text-shadow:0 0 16px color-mix(in srgb,var(--col,var(--neon-cyan)) 40%,transparent);}
+.stat-card .stat-label{font-size:12px;color:var(--muted);margin-top:6px;font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;}
+.hero-cta{display:flex;gap:12px;justify-content:center;}
+.btn-hero{font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:1px;padding:10px 24px;border-radius:8px;font-weight:600;text-transform:uppercase;cursor:pointer;transition:all 200ms;border:1px solid var(--border-strong);display:inline-flex;align-items:center;gap:8px;}
+.btn-hero.primary{background:linear-gradient(135deg,var(--neon-cyan),#0099cc);color:var(--bg-0);border:none;box-shadow:var(--glow-cyan);}
+.btn-hero.primary:hover{transform:translateY(-2px);box-shadow:0 0 24px rgba(0,212,255,0.7);}
+.btn-hero.ghost{background:transparent;color:var(--neon-cyan);}
+.btn-hero.ghost:hover{background:rgba(0,212,255,0.08);}
+.tag{display:inline-block;padding:2px 8px;font-size:10px;letter-spacing:1px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;border-radius:3px;background:rgba(0,212,255,0.1);color:var(--neon-cyan);border:1px solid var(--border);}
+.tag.magenta{background:rgba(255,42,109,0.1);color:var(--neon-magenta);border-color:rgba(255,42,109,0.3);}
+.tag.lime{background:rgba(57,255,20,0.08);color:var(--neon-lime);border-color:rgba(57,255,20,0.3);}
+.tag.violet{background:rgba(181,107,255,0.1);color:var(--neon-violet);border-color:rgba(181,107,255,0.3);}
+.foot-end{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12px;text-align:center;font-family:'JetBrains Mono',monospace;}
+.foot-end .sig{background:linear-gradient(90deg,var(--neon-cyan),var(--neon-magenta));-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700;}
+</style>
+</head>
+<body>
+<div class="top-progress"><span id="topProg" style="width:5%"></span></div>
+<div id="app">
+
+<header class="topbar">
+  <div class="brand"><i class="bi bi-cpu-fill"></i><span>NAUKRI.EXE/0.1</span></div>
+  <div class="crumb">
+    <span>doc</span><span class="sep">/</span>
+    <span class="curr" id="crumbTitle">cover</span>
+  </div>
+  <div class="actions">
+    <span class="pill-counter" id="pageIndicator">01 / 10</span>
+    <button class="btn-neon" id="btnPrev" title="Previous (Left arrow)"><i class="bi bi-chevron-left"></i></button>
+    <button class="btn-neon" id="btnNext" title="Next (Right arrow)"><i class="bi bi-chevron-right"></i></button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-group">
+      <div class="sidebar-group-label">Cover</div>
+      <button class="nav-item-btn" data-idx="0"><span class="num">00</span><i class="bi bi-stars"></i>Hero</button>
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-group-label">Core</div>
+      <button class="nav-item-btn" data-idx="1"><span class="num">01</span><i class="bi bi-diagram-3"></i>Overview</button>
+      <button class="nav-item-btn" data-idx="2"><span class="num">02</span><i class="bi bi-boxes"></i>Architecture</button>
+      <button class="nav-item-btn" data-idx="3"><span class="num">03</span><i class="bi bi-cpu-fill"></i>Technologies</button>
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-group-label">Delivery</div>
+      <button class="nav-item-btn" data-idx="4"><span class="num">04</span><i class="bi bi-grid-3x3-gap"></i>Milestones</button>
+      <button class="nav-item-btn" data-idx="5"><span class="num">05</span><i class="bi bi-shield-lock"></i>Test Surface</button>
+      <button class="nav-item-btn" data-idx="6"><span class="num">06</span><i class="bi bi-clipboard-check"></i>Reviews</button>
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-group-label">Closing</div>
+      <button class="nav-item-btn" data-idx="7"><span class="num">07</span><i class="bi bi-box-seam"></i>Artifacts</button>
+      <button class="nav-item-btn" data-idx="8"><span class="num">08</span><i class="bi bi-arrow-repeat"></i>Execution Strategy</button>
+      <button class="nav-item-btn" data-idx="9"><span class="num">09</span><i class="bi bi-flag"></i>Follow-ups</button>
+    </div>
+  </aside>
+
+  <main class="content" id="main">
+
+<!-- PAGE 0 — HERO COVER -->
+<section class="page active" data-title="Cover">
+  <div class="hero">
+    <div class="hero-eyebrow"><i class="bi bi-lightning-charge-fill"></i> EXECUTION SUMMARY &middot; v0.1.0 &middot; 2026-07-15</div>
+    <h1>NAUKRI_AUTOMATOR<br/><span class="grad">Execution Summary</span></h1>
+    <p class="lead">A Windows desktop utility that refreshes the &quot;last updated&quot; date on one or more Naukri.com profiles by scripting login &rarr; net-zero profile edit &rarr; resume rename &amp; re-upload &rarr; logout, delivered end-to-end via subagent-driven autopilot.</p>
+    <div class="hero-meta">
+      <span><i class="bi bi-git"></i> branch=master</span>
+      <span><i class="bi bi-folder2"></i> F:\views\g\Naukri</span>
+      <span><i class="bi bi-person-badge"></i> Adikarthik Gupta C B</span>
+      <span><i class="bi bi-calendar-event"></i> 2026-07-15</span>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card" style="--col: var(--neon-cyan);">
+        <div class="stat-icon"><i class="bi bi-diagram-3"></i></div>
+        <div class="stat-num" data-counter="14">0</div>
+        <div class="stat-label">Milestones</div>
+      </div>
+      <div class="stat-card" style="--col: var(--neon-magenta);">
+        <div class="stat-icon"><i class="bi bi-code-slash"></i></div>
+        <div class="stat-num" data-counter="41">0</div>
+        <div class="stat-label">Commits</div>
+      </div>
+      <div class="stat-card" style="--col: var(--neon-lime);">
+        <div class="stat-icon"><i class="bi bi-shield-lock"></i></div>
+        <div class="stat-num" data-counter="154">0</div>
+        <div class="stat-label">Tests Green</div>
+      </div>
+      <div class="stat-card" style="--col: var(--neon-violet);">
+        <div class="stat-icon"><i class="bi bi-boxes"></i></div>
+        <div class="stat-num" data-counter="2">0</div>
+        <div class="stat-label">EXEs Produced</div>
+      </div>
+    </div>
+    <div class="hero-cta">
+      <button class="btn-hero primary" onclick="go(1)"><i class="bi bi-play-fill"></i> Start Tour</button>
+      <button class="btn-hero ghost" onclick="go(2)"><i class="bi bi-grid-3x3-gap"></i> Jump to Architecture</button>
+    </div>
+  </div>
+</section>
+
+<!-- PAGE 1 — OVERVIEW -->
+<section class="page" data-title="Overview">
+  <div class="page-head"><span class="badge-num">§ 01</span><h2>At a <span class="accent">Glance</span></h2></div>
+  <p class="page-sub">One paragraph, one table, one requirements coverage list. What the user asked for &mdash; and how each item lands.</p>
+
+  <div class="card-glass">
+    <p>NaukriAutomator is a single-file Windows <code>.exe</code> that automates a small maintenance ritual against Naukri.com: log into one or more accounts, make a net-zero profile edit so the "last updated" timestamp refreshes, re-upload the resume with today's date in its filename, then log out. It ships React 18 + TypeScript on top of a Java 17 + Playwright backend, packaged with Electron, delivered as an NSIS installer and a portable binary.</p>
+  </div>
+
+  <h3>Delivery snapshot</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Milestones delivered</td><td><strong>14</strong></td></tr>
+      <tr><td>Local git commits</td><td><strong>41</strong></td></tr>
+      <tr><td>Automated tests green</td><td><strong>154</strong> &mdash; BE 37 &middot; Mock 5 &middot; FE 103 &middot; Electron 6 + 3 E2E specs authored</td></tr>
+      <tr><td>Modules</td><td><strong>6</strong> &mdash; backend &middot; mock-naukri &middot; frontend &middot; electron &middot; e2e &middot; build</td></tr>
+      <tr><td>Shipping EXEs produced</td><td><strong>2</strong> (NSIS installer + portable)</td></tr>
+      <tr><td>Installer size</td><td><strong>~397 MB</strong> each</td></tr>
+      <tr><td>Smoke test verdict</td><td><span class="tag lime">SMOKE OK</span></td></tr>
+      <tr><td>Architect review</td><td><span class="tag">APPROVED_WITH_MINOR</span> &mdash; all Critical + Important fixed</td></tr>
+      <tr><td>QA review</td><td><span class="tag">APPROVED_WITH_MINOR</span> &mdash; 8 gap items documented</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Requirements coverage &mdash; original ask vs. delivered</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>#</th><th>Requirement</th><th>Delivered as</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Upload Excel with email IDs</td><td><code>ExcelDropzone</code> &rarr; <code>POST /api/parse-excel</code> (Apache POI)</td></tr>
+      <tr><td>2</td><td>Enter individual emails</td><td><code>EmailChipInput</code> &mdash; Enter / comma / blur, dedup, backspace-delete</td></tr>
+      <tr><td>3</td><td>Common password</td><td>Masked field, in-memory only, never logged or persisted</td></tr>
+      <tr><td>4</td><td>Spawn agent per email</td><td>Sequential Playwright BrowserContext per account, incognito</td></tr>
+      <tr><td>5</td><td>Open naukri.com + login</td><td>Automated OR manual-login mode (auto-detects dashboard, 5-min timeout, Continue/Skip)</td></tr>
+      <tr><td>6</td><td>Small profile edit</td><td>Headline space-toggle &mdash; append " " &rarr; save &rarr; strip " " &rarr; save (2 saves, net-zero content)</td></tr>
+      <tr><td>7</td><td>Download + rename resume</td><td><code>&lt;stem&gt;_YYYY-MM-DD.&lt;ext&gt;</code> with collision suffix <code>-1</code>, <code>-2</code>, ...</td></tr>
+      <tr><td>8</td><td>Re-upload resume</td><td>Multipart upload to attach-resume, waits for success toast</td></tr>
+      <tr><td>9</td><td>Logout</td><td>Clicks logout link, waits for login page to reappear</td></tr>
+      <tr><td>10</td><td>Manual-login toggle</td><td>Setup screen checkbox &mdash; auto-disables headless when on; WS event <code>AWAIT_MANUAL_LOGIN</code>; auto-resume on dashboard URL match</td></tr>
+      <tr><td>11</td><td>Dark digital React UI</td><td>Tailwind + shadcn/ui + framer-motion, cyan/violet gradient, JetBrains Mono + Inter</td></tr>
+      <tr><td>12</td><td>Ship as single Windows EXE</td><td>Electron + electron-builder &mdash; NSIS + portable variants, ~397 MB each</td></tr>
+      <tr><td>13</td><td>Automated FE+BE testing</td><td>7-layer test surface, 154 tests green via <code>test.ps1 -SkipE2E</code></td></tr>
+      <tr><td>14</td><td>Parallel where independent</td><td>Milestones 8/12, 9/10/13, and final reviews all executed as parallel subagent dispatches</td></tr>
+      <tr><td>15</td><td>Autopilot to completion with architect + QA reviewers</td><td>End-to-end subagent execution + parallel architect + QA review passes + fix cycle</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- PAGE 2 — ARCHITECTURE -->
+<section class="page" data-title="Architecture">
+  <div class="page-head"><span class="badge-num">§ 02</span><h2>System <span class="accent">Architecture</span></h2></div>
+  <p class="page-sub">Four diagrams: runtime process model, component decomposition, per-account automation sequence, retry policy.</p>
+
+  <div class="diagram">
+    <div class="dgm-label">
+      <span class="dgm-tag">// DIAGRAM 2.1</span>
+      <span class="dgm-caption">Runtime process model &mdash; what lives inside a single NaukriAutomator.exe</span>
+    </div>
+<pre class="mermaid">
+flowchart LR
+    subgraph EXE["NaukriAutomator.exe (Electron + resources)"]
+        direction TB
+        MAIN[Electron main.js]
+        REND[Electron renderer<br/>React 18 + Vite]
+        BE[Java 17 + Spring Boot 3<br/>naukri-be.jar]
+        PW[Playwright Chromium<br/>1117 bundled]
+        JRE[Portable Temurin JRE 17]
+    end
+    USER((User)) -->|clicks| REND
+    MAIN -->|spawns as child| BE
+    MAIN -->|window.NAUKRI_BE_PORT| REND
+    REND -->|POST /api/jobs REST| BE
+    REND -->|/ws/jobs/id WebSocket| BE
+    BE -->|drives| PW
+    PW -->|HTTPS| NAUKRI[naukri.com]
+    PW -. HTTPS in tests .-> MOCK[Mock Naukri jar]
+</pre>
+  </div>
+
+  <div class="diagram">
+    <div class="dgm-label">
+      <span class="dgm-tag">// DIAGRAM 2.2</span>
+      <span class="dgm-caption">Component decomposition &mdash; FE screens, BE services, Electron shell, and the mock server</span>
+    </div>
+<pre class="mermaid">
+flowchart TB
+    subgraph FE["Frontend (React 18 + TS + Tailwind + shadcn)"]
+        S1[SetupScreen]
+        S2[RunScreen]
+        S3[ResultsScreen]
+        HOOK[useJobStream]
+        REST[api/rest.ts]
+        WS[api/ws.ts]
+    end
+    subgraph BE["Backend (Spring Boot 3, Java 17)"]
+        JC[JobController]
+        WSH[JobWebSocketHandler]
+        EC[ExcelController]
+        TC[TemplateController]
+        RC[RunController]
+        HC[HealthController]
+        ORCH[JobOrchestrator]
+        BUS[JobEventBus]
+        AUT[NaukriAutomator]
+        SEL[NaukriSelectors]
+        RP[RetryPolicy]
+        RR[ResumeRenamer]
+        RW[ReportWriter]
+        REG[RunRegistry]
+        POI[EmailExcelParser]
+        TPL[TemplateBuilder]
+        PS[PlaywrightSession]
+    end
+    subgraph EC2["Electron main"]
+        M[main.js]
+        P[preload.js]
+        IPC[ipc.js]
+    end
+    subgraph MK["Mock Naukri (test-only)"]
+        PC[PageController]
+        MS[MockState]
+        TH[Thymeleaf templates]
+    end
+
+    S1 --> REST
+    S2 --> HOOK
+    S3 --> REST
+    HOOK --> WS
+    REST --> JC
+    REST --> EC
+    REST --> TC
+    REST --> RC
+    WS --> WSH
+    JC --> ORCH
+    ORCH --> BUS
+    ORCH --> AUT
+    ORCH --> RP
+    ORCH --> RW
+    ORCH --> REG
+    ORCH --> PS
+    AUT --> SEL
+    AUT --> PS
+    AUT --> RR
+    EC --> POI
+    TC --> TPL
+    RC --> REG
+    WSH --> BUS
+    M --> IPC
+    M --> BE
+    P --> M
+    AUT -. in tests .-> PC
+</pre>
+  </div>
+
+  <div class="diagram">
+    <div class="dgm-label">
+      <span class="dgm-tag">// DIAGRAM 2.3</span>
+      <span class="dgm-caption">Per-account automation sequence &mdash; the 7 steps executed sequentially per email</span>
+    </div>
+<pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant FE as SetupRunResults
+    participant O as JobOrchestrator
+    participant A as NaukriAutomator
+    participant B as Chromium
+    participant N as naukri.com
+
+    U->>FE: Upload xlsx or enter emails + password
+    FE->>O: POST /api/jobs
+    O-->>FE: jobId and wsUrl
+    FE->>O: connect WS /ws/jobs/jobId
+    loop per email (sequential)
+        O->>A: run(email, pwd, mode, cfg)
+        A->>B: launch incognito context
+        A->>N: nav /nlogin/login
+        alt manualLogin=false
+            A->>N: fill email+password, submit
+        else manualLogin=true
+            A->>O: AwaitManualLogin
+            O->>FE: AWAIT_MANUAL_LOGIN
+            U->>N: completes login including OTP
+            A->>A: poll page.url to dashboard
+        end
+        A->>N: open profile, append space to headline, save
+        A->>N: strip trailing space, save (net-zero but touched)
+        A->>N: click Download resume
+        N-->>A: original.pdf
+        A->>A: ResumeRenamer to stem_YYYY-MM-DD.ext
+        A->>N: upload renamed file
+        A->>N: click Logout
+        A-->>O: List of StepResult
+        O->>FE: STEP_STARTED / STEP_COMPLETED / ACCOUNT_COMPLETED
+    end
+    O->>O: ReportWriter.write(runDir, results)
+    O->>FE: RUN_COMPLETED with summary
+    FE-->>U: Results screen (5 tiles + table + export)
+</pre>
+  </div>
+
+  <div class="diagram">
+    <div class="dgm-label">
+      <span class="dgm-tag">// DIAGRAM 2.4</span>
+      <span class="dgm-caption">Retry policy per spec &sect;5 &mdash; up to 3 attempts, last one always headed</span>
+    </div>
+<pre class="mermaid">
+flowchart LR
+    S[Start account] --> A1{Attempt 1<br/>initial mode<br/>timeout T}
+    A1 -- OK --> DONE([Account OK])
+    A1 -- fail --> A2{Attempt 2<br/>initial mode<br/>timeout 2T}
+    A2 -- OK --> DONE
+    A2 -- fail --> Q{initial HEADLESS?}
+    Q -- Yes --> A3{Attempt 3<br/>HEADED<br/>timeout 2T}
+    A3 -- OK --> DONE
+    A3 -- fail --> FAIL([FAILED + screenshot])
+    Q -- No --> FAIL
+</pre>
+  </div>
+</section>
+
+<!-- PAGE 3 — TECHNOLOGIES -->
+<section class="page" data-title="Technologies">
+  <div class="page-head"><span class="badge-num">§ 03</span><h2>Technologies <span class="accent">Used</span></h2></div>
+  <p class="page-sub">Six layers: Frontend, Backend, Mock server, Packaging, Build/Test orchestration, E2E.</p>
+
+  <div class="card-glass">
+    <h3>Frontend</h3>
+    <ul>
+      <li><span class="tag">React 18.3</span> + <span class="tag">Vite 5.3</span> + <span class="tag">TypeScript 5.4</span></li>
+      <li><span class="tag">Tailwind CSS 3.4</span> + <span class="tag">shadcn/ui</span> primitives</li>
+      <li><span class="tag magenta">framer-motion 11</span> &mdash; status-pill animations &amp; progress ring transitions</li>
+      <li><span class="tag">lucide-react</span> icons</li>
+      <li><span class="tag violet">msw 2.3</span> &mdash; REST mocking in unit tests</li>
+      <li><span class="tag lime">Vitest 1.6</span> + <span class="tag">@testing-library/react</span></li>
+      <li>Design tokens: cyan <code>#22d3ee</code> &rarr; violet <code>#a855f7</code>, JetBrains Mono headings, Inter body, glass cards with <code>backdrop-blur</code></li>
+    </ul>
+  </div>
+
+  <div class="card-glass">
+    <h3>Backend</h3>
+    <ul>
+      <li><span class="tag">Java 17</span> (Temurin / Azul)</li>
+      <li><span class="tag">Spring Boot 3.3.0</span> &mdash; Web, WebSocket, Validation starters</li>
+      <li><span class="tag magenta">Playwright Java 1.44</span> &mdash; Chromium only, bundled</li>
+      <li><span class="tag violet">Apache POI 5.2</span> &mdash; Excel parsing + template generation</li>
+      <li><span class="tag">Jackson</span> &mdash; JSON with <code>@JsonTypeInfo</code>/<code>@JsonSubTypes</code> for sealed <code>JobEvent</code></li>
+      <li><span class="tag lime">JUnit 5</span> + <span class="tag">MockMvc</span> + <span class="tag">StandardWebSocketClient</span></li>
+      <li><span class="tag">Lombok</span> (optional / build-only)</li>
+    </ul>
+  </div>
+
+  <div class="card-glass">
+    <h3>Mock test server</h3>
+    <ul>
+      <li>Standalone <span class="tag">Spring Boot 3.3</span> module &mdash; peer of backend</li>
+      <li>Thymeleaf templates matching every <code>NaukriSelectors</code> CSS selector by name</li>
+      <li>Used by BE integration tests <strong>and</strong> E2E specs &mdash; one artifact, two consumers</li>
+    </ul>
+  </div>
+
+  <div class="card-glass">
+    <h3>Packaging / desktop shell</h3>
+    <ul>
+      <li><span class="tag">Electron 31</span> + <span class="tag magenta">electron-builder 24.13</span> &mdash; NSIS installer + portable target</li>
+      <li>Portable <span class="tag violet">Temurin JRE 17</span> (~42 MB) staged at <code>resources/jre</code></li>
+      <li><span class="tag magenta">Playwright Chromium 1117</span> (~120 MB) staged at <code>resources/playwright</code></li>
+      <li>Backend fat jar (~203 MB) staged at <code>resources/backend/naukri-be.jar</code></li>
+      <li>256&times;256 ICO with dark-themed brand mark</li>
+    </ul>
+  </div>
+
+  <div class="card-glass">
+    <h3>Build / test orchestration</h3>
+    <ul>
+      <li><span class="tag">PowerShell 5.1</span> compatible scripts under <code>build/</code> and <code>build/phases/</code></li>
+      <li><code>build\build.ps1 -Variant Ship|E2E</code> &mdash; idempotent end-to-end orchestrator</li>
+      <li><code>build\test.ps1 [-SkipE2E]</code> &mdash; unified test runner across BE + Mock + FE + Electron + E2E</li>
+      <li><code>build\build.tests.ps1</code> &mdash; post-build smoke test with 15 s watchdog</li>
+    </ul>
+  </div>
+
+  <div class="card-glass">
+    <h3>E2E</h3>
+    <ul>
+      <li><span class="tag lime">@playwright/test 1.44</span> driving the packaged Electron app</li>
+      <li><span class="tag">exceljs</span> &mdash; fixture xlsx generation</li>
+      <li>Mock Naukri jar launched per-spec as a child process on a free port</li>
+      <li><code>--e2e-mock=&lt;url&gt;</code> argv &rarr; preload exposes <code>window.__E2E_MOCK__</code> &rarr; FE passes as <code>baseUrlOverride</code></li>
+    </ul>
+  </div>
+</section>
+
+<!-- PAGE 4 — MILESTONES -->
+<section class="page" data-title="Milestones">
+  <div class="page-head"><span class="badge-num">§ 04</span><h2>Milestones <span class="accent">Delivered</span></h2></div>
+  <p class="page-sub">14 planned milestones + post-implementation review, fixes, docs, and encoding fix.</p>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>#</th><th>Milestone</th><th>Commits</th><th>Test surface</th></tr></thead>
+    <tbody>
+      <tr><td>0</td><td>Repo skeleton + gitignore + docs tracked</td><td><code>083a920</code> + <code>c11cc50</code></td><td>&mdash;</td></tr>
+      <tr><td>1</td><td>Backend bootstrap + <code>/api/health</code></td><td><code>f0d9b59</code> + <code>99e03ee</code></td><td>1 MockMvc</td></tr>
+      <tr><td>2</td><td>Excel parser + template + <code>/api/template</code></td><td><code>17a056d</code> + <code>ef2ebab</code></td><td>4 unit + 2 MockMvc</td></tr>
+      <tr><td>3</td><td>Renamer + RetryPolicy + ReportWriter</td><td><code>60f236f</code> + <code>38513ce</code> + <code>0c68483</code></td><td>6 unit</td></tr>
+      <tr><td>4</td><td>Mock Naukri test server</td><td><code>84c6c38</code></td><td>5 MockMvc</td></tr>
+      <tr><td>5</td><td>NaukriSelectors + PlaywrightSession + NaukriAutomator</td><td><code>1f6f98c</code> + <code>e0786a0</code> + <code>1e3ab4d</code></td><td>1 reflection + 1 IT + 4 mock-driven IT</td></tr>
+      <tr><td>6</td><td>JobEvent + JobEventBus + JobOrchestrator</td><td><code>39ec59b</code> + <code>f148d6b</code></td><td>7 + 5</td></tr>
+      <tr><td>7</td><td>JobController + WebSocket + FullPipelineIT</td><td><code>598e3f5</code> + <code>19fd076</code> + <code>96d5ca8</code> + <code>7f3f7de</code></td><td>6 MockMvc + 2 WS IT + 1 pipeline IT</td></tr>
+      <tr><td>8</td><td>FE scaffold + tokens + typed API client</td><td><code>594308b</code> + <code>d821ad9</code></td><td>19 unit</td></tr>
+      <tr><td>9</td><td>EmailChipInput + ExcelDropzone + SetupScreen + <code>/api/parse-excel</code></td><td><code>a239b7d</code> + <code>abf4d35</code> + <code>4c5cd51</code> + <code>25373fe</code></td><td>+BE 2 &middot; +FE ~30</td></tr>
+      <tr><td>10</td><td>useJobStream + RunTable + ProgressRing + ManualLoginCallout + RunScreen</td><td><code>83ad8d9</code> + <code>ededdb5</code> + <code>4a59e01</code></td><td>+FE ~50</td></tr>
+      <tr><td>11</td><td>Fixtures visibility fix + RunController + ResultsScreen + Stepper + AppRouter</td><td><code>089203b</code> + <code>f2e560e</code> + <code>195f0d3</code> + <code>6da55c1</code></td><td>+BE 2 &middot; +FE ~15</td></tr>
+      <tr><td>12</td><td>Electron main + preload + electron-builder.yml + tests</td><td><code>19a89e4</code></td><td>6 Node</td></tr>
+      <tr><td>13</td><td>PowerShell build pipeline (phases + orchestrator + smoke test)</td><td><code>60b9349</code></td><td>phase smokes</td></tr>
+      <tr><td>14</td><td>E2E specs + <code>test.ps1</code> + docs</td><td><code>85f4140</code> + <code>f4edf75</code> + <code>9471cfa</code> + <code>9b4bc40</code> + <code>6dfcd82</code></td><td>3 Playwright + runner</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Post-implementation waves</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Track</th><th>Commits</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>Architect + QA reviews</td><td>(reports on disk)</td><td>Two independent whole-branch reviews</td></tr>
+      <tr><td>Critical + Important fixes</td><td><code>e4d8c08</code> + <code>44ec078</code> + <code>239f250</code> + <code>9dc4572</code></td><td>RetryPolicy wired &middot; STEP_STARTED emitted &middot; screenshot path &middot; 409 concurrent &middot; unused enum removed &middot; duplicate WS event removed</td></tr>
+      <tr><td>Docs finalisation</td><td><code>c76f915</code> (README) + <code>0638646</code> (COMPLETION_SUMMARY)</td><td>User-facing docs</td></tr>
+      <tr><td>Build.tests encoding fix</td><td><code>2338524</code></td><td>PS 5.1 parser compat</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- PAGE 5 — TEST SURFACE -->
+<section class="page" data-title="Test Surface">
+  <div class="page-head"><span class="badge-num">§ 05</span><h2>Test <span class="accent">Surface</span></h2></div>
+  <p class="page-sub">Seven test layers, one unified runner. <code>build\test.ps1 -SkipE2E</code> prints ALL GREEN.</p>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Layer</th><th>Framework</th><th>Files</th><th>Tests</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>BE unit</td><td>JUnit 5</td><td>8</td><td>25</td><td><span class="tag lime">GREEN</span></td></tr>
+      <tr><td>BE contract (MockMvc)</td><td>Spring Boot Test</td><td>5</td><td>11</td><td><span class="tag lime">GREEN</span></td></tr>
+      <tr><td>BE integration (Playwright + mock jar spawn)</td><td>JUnit 5 + <code>@Tag("integration")</code></td><td>3</td><td>7</td><td><span class="tag lime">GREEN</span></td></tr>
+      <tr><td>Mock Naukri</td><td>Spring MockMvc</td><td>1</td><td>5</td><td><span class="tag lime">GREEN</span></td></tr>
+      <tr><td>FE unit</td><td>Vitest + RTL</td><td>12</td><td>89</td><td><span class="tag lime">GREEN</span></td></tr>
+      <tr><td>FE contract (msw REST + WS mock)</td><td>Vitest</td><td>2</td><td>14</td><td><span class="tag lime">GREEN</span></td></tr>
+      <tr><td>Electron main</td><td>Node <code>node --test</code></td><td>2</td><td>6</td><td><span class="tag lime">GREEN</span></td></tr>
+      <tr><td>E2E</td><td>@playwright/test</td><td>3</td><td>3 specs authored</td><td><span class="tag violet">READY</span> (needs E2E variant build)</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="card-glass">
+    <h3>Runner contract</h3>
+    <p><code>build\test.ps1</code> orchestrates sections in order and tracks per-section pass/fail:</p>
+    <ol>
+      <li><strong>BE verify</strong> &mdash; <code>mvn -f backend/pom.xml verify</code></li>
+      <li><strong>Mock tests</strong> &mdash; <code>mvn -f mock-naukri/pom.xml test</code></li>
+      <li><strong>FE tests</strong> &mdash; <code>npm --prefix frontend run test:ci</code></li>
+      <li><strong>Electron tests</strong> &mdash; <code>npm --prefix electron test</code></li>
+      <li><strong>E2E</strong> (unless <code>-SkipE2E</code>) &mdash; <code>build\build.ps1 -Variant E2E</code> then <code>npm --prefix e2e test</code></li>
+    </ol>
+    <p>Exit 0 with <span class="tag lime">ALL GREEN</span>, exit 1 with <span class="tag magenta">FAILED: &lt;list&gt;</span>.</p>
+  </div>
+</section>
+
+<!-- PAGE 6 — REVIEWS -->
+<section class="page" data-title="Reviews">
+  <div class="page-head"><span class="badge-num">§ 06</span><h2>Review <span class="accent">Outcomes</span></h2></div>
+  <p class="page-sub">Two independent whole-branch reviews after implementation completed. Both APPROVED_WITH_MINOR; all Critical + Important addressed in a follow-up fix wave.</p>
+
+  <div class="card-glass">
+    <h3>Architect review &mdash; <span class="tag">APPROVED_WITH_MINOR</span></h3>
+    <h4>Critical (2) &mdash; both fixed</h4>
+    <ul>
+      <li><code>RetryPolicy</code> was injected into <code>JobOrchestrator</code> but never invoked. <strong>Fixed</strong> in commit <code>239f250</code> &mdash; wired into <code>processAccount</code> with mode/timeout attempt list per spec &sect;5.</li>
+      <li><code>STEP_STARTED</code> event existed in the sealed hierarchy but was never published. <strong>Fixed</strong> in commit <code>44ec078</code> &mdash; emitted alongside <code>StepCompleted</code>/<code>StepFailed</code> per step.</li>
+    </ul>
+    <h4>Important (4) &mdash; all fixed</h4>
+    <ul>
+      <li>Screenshot path moved into <code>&lt;outputFolder&gt;/&lt;runTimestamp&gt;/screenshots/</code>.</li>
+      <li>Duplicate <code>AWAIT_MANUAL_LOGIN</code> emission removed.</li>
+      <li>Concurrent <code>POST /api/jobs</code> now returns <span class="tag lime">409 Conflict</span> instead of 500.</li>
+      <li><code>RENAME_RESUME</code> enum value removed (it never produced a <code>StepResult</code>).</li>
+    </ul>
+    <h4>Minor (5) &mdash; documented, non-blocking</h4>
+    <p>Session-caching, log-filename sanitisation, event-bus mixed concurrency style, silent WS fallback port, <code>ResultsScreen</code> empty-accounts array.</p>
+  </div>
+
+  <div class="card-glass">
+    <h3>QA review &mdash; <span class="tag">APPROVED_WITH_MINOR</span></h3>
+    <p>Total: <strong>154 automated tests green</strong> + <strong>3 E2E specs</strong> authored. Gap list documented for follow-up:</p>
+    <ol>
+      <li>Network-timeout path (<code>FAILED</code> via navigation timeout).</li>
+      <li>WebSocket disconnect mid-run resilience.</li>
+      <li>Orchestrator-driven retry (retry loop end-to-end).</li>
+      <li>Malformed / password-protected xlsx.</li>
+      <li>HTTP 409 concurrent-start REST assertion &mdash; <strong>added by fix commit <code>9dc4572</code></strong>.</li>
+      <li>E2E <code>AUTH_FAILED</code> branch (<code>bad@x.com</code>).</li>
+      <li>E2E <code>REQUIRES_MANUAL</code> branch with <code>manualLogin=false</code>.</li>
+      <li><code>ResumeRenamer</code> truly-no-extension edge case.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- PAGE 7 — ARTIFACTS -->
+<section class="page" data-title="Artifacts">
+  <div class="page-head"><span class="badge-num">§ 07</span><h2>Delivered <span class="accent">Artifacts</span></h2></div>
+  <p class="page-sub">Everything on disk under <code>F:\views\g\Naukri</code>.</p>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Artifact</th><th>Path</th><th>Size / Notes</th></tr></thead>
+    <tbody>
+      <tr><td>NSIS installer</td><td><code>dist\NaukriAutomator Setup 0.1.0.exe</code></td><td>415,994,961 bytes (~396.7 MB)</td></tr>
+      <tr><td>Portable EXE</td><td><code>dist\NaukriAutomator-0.1.0-portable.exe</code></td><td>415,787,418 bytes (~396.5 MB)</td></tr>
+      <tr><td>Design spec</td><td><code>docs\superpowers\specs\2026-07-14-naukri-utility-design.md</code></td><td>291 lines, approved</td></tr>
+      <tr><td>Implementation plan</td><td><code>docs\superpowers\plans\2026-07-14-naukri-utility.md</code></td><td>~1,300 lines, 14 milestones</td></tr>
+      <tr><td>README</td><td><code>README.md</code></td><td>user-facing usage guide</td></tr>
+      <tr><td>Completion summary</td><td><code>COMPLETION_SUMMARY.md</code></td><td>milestones + reviews + credentials handling note</td></tr>
+      <tr><td>Test-layer guide</td><td><code>docs\testing.md</code></td><td>how to run each layer</td></tr>
+      <tr><td>Execution summary (this doc)</td><td><code>docs\NAUKRI_EXECUTION_SUMMARY.md</code></td><td>+ HTML render</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="card-glass">
+    <h3>Bundled in each EXE</h3>
+    <ul>
+      <li><strong>Java 17 JRE</strong> (Temurin, ~42 MB) at <code>resources/jre/</code> &mdash; provides <code>javaw.exe</code></li>
+      <li><strong>Spring Boot fat jar</strong> (~203 MB) at <code>resources/backend/naukri-be.jar</code></li>
+      <li><strong>Playwright Chromium 1117</strong> (~120 MB) at <code>resources/playwright/</code></li>
+      <li><strong>React SPA</strong> compiled to static assets at <code>resources/app/renderer/</code></li>
+      <li><strong>Electron 31 shell</strong> at <code>resources/app/</code></li>
+    </ul>
+    <p>Everything self-contained. No external installs required at runtime.</p>
+  </div>
+
+  <div class="card-glass">
+    <h3>Smoke test verdict</h3>
+    <p><code>build\build.tests.ps1</code> launches the portable EXE, waits 15 seconds, asserts the process has not exited, then kills it. Result on the final rebuild: <span class="tag lime">SMOKE OK</span> (PID 46316, 15 s clean).</p>
+  </div>
+</section>
+
+<!-- PAGE 8 — EXECUTION STRATEGY -->
+<section class="page" data-title="Execution Strategy">
+  <div class="page-head"><span class="badge-num">§ 08</span><h2>Execution <span class="accent">Strategy</span></h2></div>
+  <p class="page-sub">Subagent-driven autopilot with parallel dispatch in the second half.</p>
+
+  <div class="card-glass">
+    <p>Every implementer subagent worked from a task brief on disk (<code>.superpowers/sdd/milestone-N-brief.md</code>) and returned a report to disk (<code>.superpowers/sdd/milestone-N-report.md</code>) &mdash; the controller never carried bulk diffs in its own context. Task-level review gates caught the critical findings before final packaging.</p>
+  </div>
+
+  <div class="diagram">
+    <div class="dgm-label">
+      <span class="dgm-tag">// DIAGRAM 8.1</span>
+      <span class="dgm-caption">Parallelism used in the second half of the run &mdash; four rounds compressed via parallel dispatch</span>
+    </div>
+<pre class="mermaid">
+gantt
+    dateFormat  X
+    axisFormat  M%d
+    title Parallel dispatch rounds
+    section Round 1 (2 parallel)
+    M8  FE skeleton      :done, 0, 6
+    M12 Electron shell   :done, 0, 4
+    section Round 2 (3 parallel)
+    M9  Setup screen     :done, 6, 12
+    M10 Run screen       :done, 6, 12
+    M13 Build pipeline   :done, 6, 12
+    section Round 3 (sequential)
+    M11 Results + router :done, 12, 18
+    section Round 4 (sequential)
+    M14 E2E + test.ps1   :done, 18, 24
+    section Round 5 (3 parallel)
+    Architect review     :done, 24, 27
+    QA review            :done, 24, 27
+    Ship-variant build   :done, 24, 30
+    section Round 6 (fix wave)
+    Critical fixes       :done, 30, 34
+    section Round 7 (2 parallel)
+    Rebuild EXEs         :done, 34, 38
+    README + summary     :done, 34, 38
+</pre>
+  </div>
+
+  <div class="card-glass">
+    <h3>Round breakdown</h3>
+    <ul>
+      <li><strong>Rounds 1&ndash;4</strong> executed the 14-milestone plan with parallelism wherever files were independent.</li>
+      <li><strong>Round 5</strong> ran architect review + QA review + first Ship-variant build concurrently.</li>
+      <li><strong>Round 6</strong> was the fix wave &mdash; 2 Critical + 4 Important findings fixed in 4 focused commits.</li>
+      <li><strong>Round 7</strong> re-packaged the EXEs (so shipping installers include the fixes) and wrote the user-facing docs in parallel.</li>
+    </ul>
+    <p>Total: ~17 subagent dispatches. Parallel-round wall time was roughly half the equivalent sequential cost.</p>
+  </div>
+</section>
+
+<!-- PAGE 9 — FOLLOW-UPS -->
+<section class="page" data-title="Follow-ups">
+  <div class="page-head"><span class="badge-num">§ 09</span><h2>Known <span class="accent">Follow-ups</span></h2></div>
+  <p class="page-sub">Documented, non-blocking. Nothing here prevents release.</p>
+
+  <div class="card-glass">
+    <h3>Minor architect findings (M1&ndash;M5)</h3>
+    <ol>
+      <li>Session-caching in <code>PlaywrightSession</code> &mdash; may block a future extension of the retry loop for cross-mode reuse.</li>
+      <li>Log filename sanitisation &mdash; email addresses with unusual characters could produce invalid Windows filenames.</li>
+      <li><code>JobEventBus</code> mixed concurrency style &mdash; some paths use <code>ConcurrentLinkedDeque</code>, others <code>CopyOnWriteArrayList</code>.</li>
+      <li>WS fallback port (5000 in dev mode) is silently applied when <code>window.NAUKRI_BE_PORT</code> is missing &mdash; consider an explicit dev banner.</li>
+      <li><code>ResultsScreen</code> receives an empty <code>accounts</code> array &mdash; RunScreen owns <code>byEmail</code>; passing it up requires extending <code>onCompleted</code>.</li>
+    </ol>
+  </div>
+
+  <div class="card-glass">
+    <h3>Remaining QA gaps (7)</h3>
+    <ol>
+      <li>Network-timeout path &mdash; <code>FAILED</code> via navigation timeout not exercised.</li>
+      <li>WebSocket disconnect mid-run resilience.</li>
+      <li>Orchestrator-driven retry &mdash; end-to-end assertion of a failed-first-attempt-then-retry sequence.</li>
+      <li>Malformed / password-protected xlsx.</li>
+      <li>E2E <code>AUTH_FAILED</code> branch (<code>bad@x.com</code>).</li>
+      <li>E2E <code>REQUIRES_MANUAL</code> branch with <code>manualLogin=false</code>.</li>
+      <li><code>ResumeRenamer</code> truly-no-extension edge case.</li>
+    </ol>
+  </div>
+
+  <div class="card-glass">
+    <h3>Live-Naukri smoke &mdash; deliberately deferred</h3>
+    <p>The user provided testing credentials during the autopilot run. Automated CI test flow uses the Mock Naukri server (deterministic, no real-account side effects). Running the shipped EXE against <strong>live</strong> naukri.com with real credentials would make real, non-reversible changes to that profile &mdash; so the automated pipeline did <strong>not</strong> perform that live smoke on the user's behalf.</p>
+    <p><strong>Recommended manual step:</strong> launch <code>dist\NaukriAutomator-0.1.0-portable.exe</code>, tick "Log in manually" (safest first run), pick a scratch output folder, and validate against the target account.</p>
+  </div>
+
+  <div class="foot-end">
+    Delivered by <span class="sig">Adikarthik Gupta C B</span> &middot; 2026-07-15 &middot; NaukriAutomator v0.1.0
+  </div>
+</section>
+
+  </main>
+</div>
+</div>
+
+<script>
+  const pages = Array.from(document.querySelectorAll('section.page'));
+  const navBtns = Array.from(document.querySelectorAll('.nav-item-btn'));
+  const indicator = document.getElementById('pageIndicator');
+  const crumb = document.getElementById('crumbTitle');
+  const prog = document.getElementById('topProg');
+  const btnPrev = document.getElementById('btnPrev');
+  const btnNext = document.getElementById('btnNext');
+  let currentIdx = 0;
+  let mermaidRendered = new Set();
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  function go(idx) {
+    if (idx < 0) idx = 0;
+    if (idx >= pages.length) idx = pages.length - 1;
+    currentIdx = idx;
+    pages.forEach((p, i) => p.classList.toggle('active', i === idx));
+    navBtns.forEach(b => b.classList.toggle('active', Number(b.dataset.idx) === idx));
+    indicator.textContent = `${pad(idx + 1)} / ${pad(pages.length)}`;
+    crumb.textContent = (pages[idx].dataset.title || '').toLowerCase();
+    prog.style.width = ((idx + 1) / pages.length * 100) + '%';
+    btnPrev.disabled = idx === 0;
+    btnNext.disabled = idx === pages.length - 1;
+    history.replaceState(null, '', `#p${idx}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const activeNav = document.querySelector(`.nav-item-btn[data-idx="${idx}"]`);
+    if (activeNav) activeNav.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    animateCounters(pages[idx]);
+    renderMermaidIn(pages[idx]);
+  }
+
+  function animateCounters(page) {
+    page.querySelectorAll('[data-counter]').forEach(el => {
+      const target = Number(el.dataset.counter);
+      if (Number(el.dataset.done) === 1) return;
+      let cur = 0;
+      const dur = 900;
+      const step = Math.max(1, target / (dur / 16));
+      const id = setInterval(() => {
+        cur += step;
+        if (cur >= target) { cur = target; clearInterval(id); el.dataset.done = 1; }
+        el.textContent = Math.round(cur);
+      }, 16);
+    });
+  }
+
+  function renderMermaidIn(page) {
+    const blocks = page.querySelectorAll('.mermaid:not([data-processed])');
+    blocks.forEach(b => mermaidRendered.add(b));
+    if (blocks.length) {
+      try { mermaid.run({ nodes: Array.from(blocks) }); } catch(e) { console.warn(e); }
+    }
+  }
+
+  navBtns.forEach(b => b.addEventListener('click', () => go(Number(b.dataset.idx))));
+  btnPrev.addEventListener('click', () => go(currentIdx - 1));
+  btnNext.addEventListener('click', () => go(currentIdx + 1));
+
+  document.addEventListener('keydown', (e) => {
+    if (['INPUT','TEXTAREA'].includes(e.target.tagName)) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); go(currentIdx + 1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'PageUp')   { e.preventDefault(); go(currentIdx - 1); }
+    if (e.key === 'Home') { e.preventDefault(); go(0); }
+    if (e.key === 'End')  { e.preventDefault(); go(pages.length - 1); }
+  });
+
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    securityLevel: 'loose',
+    themeVariables: {
+      darkMode: true,
+      background: 'transparent',
+      fontFamily: 'JetBrains Mono, ui-monospace, monospace',
+      fontSize: '13px',
+      primaryColor: '#0e1b30',
+      primaryBorderColor: '#00d4ff',
+      primaryTextColor: '#e6edf3',
+      secondaryColor: '#1a1230',
+      secondaryBorderColor: '#b56bff',
+      tertiaryColor: '#1a0a18',
+      tertiaryBorderColor: '#ff2a6d',
+      lineColor: '#00d4ff',
+      textColor: '#e6edf3',
+      mainBkg: '#0e1b30',
+      nodeBorder: '#00d4ff',
+      clusterBkg: 'rgba(0,212,255,0.05)',
+      clusterBorder: '#00d4ff',
+      titleColor: '#00d4ff',
+      edgeLabelBackground: '#0a0f1c',
+      noteBkgColor: '#1a1230',
+      noteBorderColor: '#b56bff',
+      noteTextColor: '#e6edf3',
+      activationBkgColor: '#00d4ff',
+      activationBorderColor: '#00d4ff',
+      sequenceNumberColor: '#0a0f1c',
+      actorBkg: '#0e1b30',
+      actorBorder: '#00d4ff',
+      actorTextColor: '#e6edf3',
+      actorLineColor: '#00d4ff',
+      signalColor: '#e6edf3',
+      signalTextColor: '#e6edf3',
+      labelBoxBkgColor: '#1a1230',
+      labelBoxBorderColor: '#b56bff',
+      labelTextColor: '#e6edf3',
+      loopTextColor: '#e6edf3',
+      altSectionBkgColor: 'rgba(0,212,255,0.04)',
+      messageTextColor: '#e6edf3',
+      messageFontWeight: '500'
+    },
+    flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis', padding: 12 },
+    sequence:  { useMaxWidth: true, wrap: true, mirrorActors: true, boxMargin: 10, actorMargin: 56, width: 160, messageFontSize: 13, noteFontSize: 12 },
+    stateDiagram: { useMaxWidth: true }
+  });
+
+  const m = location.hash.match(/^#p(\d+)$/);
+  const start = m ? Math.min(Math.max(Number(m[1]), 0), pages.length - 1) : 0;
+  go(start);
+</script>
+
+</body>
+</html>

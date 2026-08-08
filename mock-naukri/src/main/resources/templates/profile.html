@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<!--
+  Mock Naukri profile page. DOM structure mirrors real naukri.com/mnjuser/profile
+  as verified on 2026-07-16 in a live browser session. All selectors match
+  NaukriSelectors.java constants so integration tests exercise the same code path
+  used against the real site.
+-->
+<head>
+  <meta charset="UTF-8"/>
+  <title>Naukri – Profile</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; }
+
+    .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 16px; }
+    .mt15 { margin-top: 15px; }
+
+    .widgetHead { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; }
+    .widgetTitle { font-weight: bold; font-size: 16px; }
+    .widgetCont { padding-top: 8px; }
+    .prefill { color: #555; }
+    .edit.icon { cursor: pointer; color: #005aff; text-decoration: underline; }
+
+    .cvPreview { padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
+    .resume-name-inline .truncate.exten { font-weight: bold; }
+    .updateOn { color: #888; font-size: 12px; margin-top: 4px; }
+    .icon-wrap { cursor: pointer; margin-left: 8px; color: #005aff; text-decoration: underline; }
+    .dummyUpload { padding: 8px 16px; background: #005aff; color: #fff; border: none; cursor: pointer; margin-top: 12px; }
+    .fileUpload { display: none; }
+
+    /* Modal for headline edit */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: #fff; padding: 24px; border-radius: 8px; width: 500px; max-width: 90%; }
+    .modal textarea { width: 100%; min-height: 100px; padding: 8px; box-sizing: border-box; }
+    .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+    .cancel-btn { padding: 8px 16px; color: #005aff; cursor: pointer; text-decoration: none; }
+    .btn-dark-ot { padding: 8px 16px; background: #005aff; color: #fff; border: none; cursor: pointer; }
+
+    /* Shared success toast.
+       IMPORTANT: mirrors real Naukri, which mounts .success-message-container
+       once on first save and NEVER hides the container thereafter - only the
+       inner .success-text fades. This means any regression in the automator
+       that waits for .success-message-container to be Playwright-HIDDEN will
+       hang against this mock too (previously the mock auto-hid the whole
+       container, masking the bug that caused report 2026-07-16_18-44-18).
+       Container is initially invisible (visibility:hidden, still layout);
+       .show class flips it visible; inner text opacity fades on timeout. */
+    .success-message-container { position: fixed; top: 20px; right: 20px; background: #d4edda; border: 1px solid #28a745; padding: 12px 16px; color: #155724; border-radius: 4px; z-index: 2000; visibility: hidden; }
+    .success-message-container.show { visibility: visible; }
+    .success-text { font-weight: bold; transition: opacity 0.4s ease-out; }
+  </style>
+</head>
+<body>
+  <h1>My Profile</h1>
+
+  <!-- ── Resume headline widget (verified real DOM shape) ────────────────── -->
+  <div class="card mt15">
+    <div class="">
+      <div class="widgetHead">
+        <span class="widgetTitle typ-16Bold">Resume headline</span>
+        <span class="edit icon" onclick="openHeadlineModal()">editOneTheme</span>
+      </div>
+      <div class="widgetCont">
+        <div class="prefill typ-14Medium">
+          <div id="headline-prefill-text" th:text="${headline}">...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Resume card (verified real DOM shape) ────────────────────────────── -->
+  <div id="lazyAttachCV" class="card mt15">
+    <div class="attachCV">
+      <div class="heading row">
+        <div class="row main mb0">
+          <div class="s12 typ-16Bold">Resume</div>
+        </div>
+      </div>
+      <div>
+        <div class="cvPreview">
+          <div class="col s10">
+            <div class="left">
+              <div class="resume-name-inline">
+                <div th:title="${uploadedResumeName ?: 'resume.pdf'}"
+                     class="truncate exten"
+                     th:text="${uploadedResumeName ?: 'resume.pdf'}">resume.pdf</div>
+              </div>
+              <div class="updateOn typ-14Regular">Uploaded on Jul 15, 2026</div>
+            </div>
+          </div>
+          <div class="col s2">
+            <div class="right">
+              <span class="icon-wrap" data-title="download-resume" onclick="downloadResume()">
+                <i class="icon" data-title="download-resume"
+                   title="Click here to download your resume">downloadOneTheme</i>
+              </span>
+              <span class="icon-wrap" data-title="delete-resume">
+                <i class="icon" data-title="delete-resume"
+                   title="Click here to delete your resume">deleteOneTheme</i>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row mb0">
+        <div class="cvUpload s12">
+          <div class="uploadCont">
+            <div class="uploadBtn">
+              <section>
+                <div class="action">
+                  <div class="uploadContainer">
+                    <input type="file" id="attachCV" class="fileUpload waves-effect waves-light btn-large"
+                           accept=".pdf,.doc,.docx,.rtf" onchange="onFileSelected()"/>
+                  </div>
+                  <div>
+                    <input type="button" value="Update resume" class="dummyUpload typ-14Bold"
+                           onclick="uploadResume()"/>
+                  </div>
+                </div>
+              </section>
+            </div>
+            <div class="format typ-14Medium">Supported Formats: doc, docx, rtf, pdf, upto 2 MB</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Nav / logout ───────────────────────────────────────────────────── -->
+  <form method="post" action="/nlogin/logout" style="margin-top: 24px;">
+    <a id="logout" href="#" onclick="this.closest('form').submit(); return false;">Logout</a>
+  </form>
+
+  <!-- ── Headline edit modal (opened by pencil click) ───────────────────── -->
+  <div id="headline-modal" class="modal-backdrop">
+    <div class="modal">
+      <form class="s12 lbpadding" name="resumeHeadlineForm" onsubmit="return saveHeadline(event);">
+        <div class="editHeader">
+          <div class="mb5"><span class="widgetTitle">Resume headline</span></div>
+          <div class="lbl widgetDesc">
+            It is the first thing recruiters notice in your profile.
+            (Minimum 5 words)
+          </div>
+        </div>
+        <div class="input-field s12">
+          <textarea id="resumeHeadlineTxt" name="resumeHeadline"
+                    class="fue__text-area" maxlength="250"
+                    placeholder="Your resume headline"
+                    th:text="${headline}"></textarea>
+        </div>
+        <div class="row form-actions">
+          <div class="action s12">
+            <a class="cancel-btn" href="javascript:void(0)" onclick="closeHeadlineModal()">Cancel</a>
+            <button class="btn-dark-ot" type="submit">Save</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Shared success toast ───────────────────────────────────────────── -->
+  <div id="success-toast" class="success-message-container">
+    <div class="success-icon-wrapper">✓</div>
+    <span class="success-text">Profile updated successfully</span>
+  </div>
+
+  <script>
+    // Real Naukri fires the download from a JS handler that hits the cloud gateway URL.
+    // Mock mirrors this: clicking the download icon issues a GET to the same URL.
+    var PROFILE_HASH = /*[[${profileHash}]]*/ '974fc069c8ff92c2e154c5b3395ef58fcb803ebd6429fd0f5c4f31944917d4da';
+    var DOWNLOAD_URL = '/cloudgateway-mynaukri/resman-aggregator-services/v1/users/self/profiles/' + PROFILE_HASH + '/resume';
+
+    function openHeadlineModal() {
+      // Sync current text into the textarea (in case prefill has changed).
+      var currentText = document.getElementById('headline-prefill-text').textContent;
+      document.getElementById('resumeHeadlineTxt').value = currentText;
+      document.getElementById('headline-modal').classList.add('open');
+    }
+    function closeHeadlineModal() {
+      document.getElementById('headline-modal').classList.remove('open');
+    }
+    function showToast() {
+      var t = document.getElementById('success-toast');
+      var span = t.querySelector('.success-text');
+      t.classList.add('show');
+      if (span) span.style.opacity = '1';
+      // Fade only the inner text after 3s. Container stays .show'd forever
+      // to match real Naukri behavior where the container persists in DOM.
+      setTimeout(function () { if (span) span.style.opacity = '0'; }, 3000);
+    }
+    function saveHeadline(e) {
+      if (e) e.preventDefault();
+      var val = document.getElementById('resumeHeadlineTxt').value;
+      fetch('/mnjuser/profile/headline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: val })
+      }).then(function (r) {
+        if (r.ok) {
+          document.getElementById('headline-prefill-text').textContent = val;
+          closeHeadlineModal();
+          showToast();
+        }
+      });
+      return false;
+    }
+    function downloadResume() {
+      // Trigger the actual download via a hidden link; the URL is the same one
+      // the automation intercepts via Page.waitForResponse.
+      var a = document.createElement('a');
+      a.href = DOWNLOAD_URL;
+      a.download = '';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    function onFileSelected() {
+      // Optional: highlight the update button when a file is selected.
+      // Automation calls setInputFiles then clicks the Update button, so this is decorative.
+    }
+    function uploadResume() {
+      var fileInput = document.getElementById('attachCV');
+      if (!fileInput.files.length) return;
+      var fd = new FormData();
+      fd.append('file', fileInput.files[0]);
+      fetch('/mnjuser/profile/resume', {
+        method: 'POST',
+        body: fd
+      }).then(function (r) {
+        if (r.ok) {
+          // Update the displayed filename to reflect the new upload.
+          var newName = fileInput.files[0].name;
+          var nameEl = document.querySelector('.resume-name-inline .truncate.exten');
+          if (nameEl) { nameEl.textContent = newName; nameEl.setAttribute('title', newName); }
+          showToast();
+        }
+      });
+    }
+  </script>
+</body>
+</html>

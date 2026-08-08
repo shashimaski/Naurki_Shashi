@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Naukri – OTP Verification</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 400px; margin: 80px auto; }
+    input { display: block; width: 100%; padding: 8px; margin-bottom: 12px; box-sizing: border-box; }
+    button { width: 100%; padding: 10px; background: #005aff; color: #fff; border: none; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>OTP Verification</h1>
+  <p>Enter the one-time password sent to your mobile.</p>
+  <form method="post" action="/otp">
+    <input type="text" id="otp" name="otp" placeholder="Enter OTP" required/>
+    <button type="submit" id="otp-submit">Verify OTP</button>
+  </form>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "naukri-automator",
+  "version": "0.1.0",
+  "private": true,
+  "author": "Adikarthik Gupta C B",
+  "description": "Naukri profile updater utility",
+  "scripts": {
+    "build:be":       "powershell -NoProfile -ExecutionPolicy Bypass -File build\\phases\\build-backend.ps1",
+    "build:be:hot":   "powershell -NoProfile -ExecutionPolicy Bypass -File build\\phases\\build-backend-only.ps1",
+    "build:fe":       "powershell -NoProfile -ExecutionPolicy Bypass -File build\\phases\\build-frontend.ps1",
+    "build:electron": "powershell -NoProfile -ExecutionPolicy Bypass -File build\\phases\\build-electron.ps1",
+    "build:all":      "powershell -NoProfile -ExecutionPolicy Bypass -File build\\build.ps1"
+  }
+}

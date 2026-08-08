@@ -1,0 +1,18 @@
+{
+  "name": "naukri-electron",
+  "version": "0.1.0",
+  "description": "NaukriAutomator Electron shell",
+  "main": "main.js",
+  "author": "Adikarthik Gupta C B",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "dev": "electron .",
+    "test": "node --test test/main.spawn.test.js test/preload.contract.test.js",
+    "dist": "electron-builder --win nsis portable --config electron-builder.yml"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.0"
+  }
+}

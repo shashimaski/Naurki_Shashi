@@ -1,0 +1,54 @@
+appId: com.adikarthik.naukriautomator
+productName: NaukriAutomator
+copyright: "Copyright © 2026 Adikarthik Gupta C B"
+
+directories:
+  output: ../dist
+
+files:
+  - main.js
+  - preload.js
+  - src/**/*
+  - renderer/**/*
+  - package.json
+
+extraResources:
+  - from: ../backend/target/naukri-be.jar
+    to: backend/naukri-be.jar
+  - from: resources/jre
+    to: jre
+    filter:
+      - "**/*"
+  - from: resources/playwright
+    to: playwright
+    filter:
+      - "**/*"
+
+# E2E variant only — comment out for standard builds
+# - from: ../mock-naukri/target/mock-naukri.jar
+#   to: mock/mock-naukri.jar
+
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: zip
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  deleteAppDataOnUninstall: false
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  shortcutName: NaukriAutomator
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+# zip target = unpacked app folder, zipped once. User unzips once anywhere,
+# runs NaukriAutomator.exe inside. No self-extraction on every launch (unlike
+# the electron-builder "portable" target). This is the fast portable path.

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Naukri – Login</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 400px; margin: 80px auto; }
+    /* commonErrorMsg matches real naukri.com class used by NaukriSelectors.LOGIN_ERROR */
+    .commonErrorMsg { background: #fdd; border: 1px solid #c00; padding: 8px 12px; margin-bottom: 16px; color: #c00; }
+    input { display: block; width: 100%; padding: 8px; margin-bottom: 12px; box-sizing: border-box; }
+    button { width: 100%; padding: 10px; background: #005aff; color: #fff; border: none; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Login</h1>
+
+  <!-- Error banner: class matches NaukriSelectors.LOGIN_ERROR = ".commonErrorMsg" -->
+  <div class="col s12 commonErrorMsg" th:if="${error}" th:text="${error}"></div>
+
+  <!-- Form id matches NaukriSelectors.LOGIN_SUBMIT scope "#loginForm button[type='submit']" -->
+  <form id="loginForm" method="post" action="/nlogin/login">
+    <!-- id="usernameField" matches NaukriSelectors.LOGIN_EMAIL = "#usernameField" -->
+    <input type="text" id="usernameField" name="email" placeholder="Enter Email ID / Username" autocomplete="off"/>
+    <!-- id="passwordField" matches NaukriSelectors.LOGIN_PASSWORD = "#passwordField" -->
+    <input type="password" id="passwordField" name="password" placeholder="Enter Password"/>
+    <button type="submit">Login</button>
+  </form>
+</body>
+</html>

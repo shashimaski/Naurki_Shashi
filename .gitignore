@@ -1,0 +1,37 @@
+# Node / Vite
+node_modules/
+dist/
+.vite/
+
+# Java / Maven
+target/
+*.class
+*.jar
+
+# Electron build output
+electron/renderer/
+electron/resources/backend/*.jar
+electron/resources/jre/
+electron/resources/playwright/
+out/
+release/
+
+# Build cache (downloaded artifacts)
+build/.cache/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+Thumbs.db
+Desktop.ini
+bash.exe.stackdump
+
+# Runtime
+runs/
+*.log
+
+# Claude Code local state
+.claude/

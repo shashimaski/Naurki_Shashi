@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<!--
+  Mock Naukri dashboard/homepage. DOM structure mirrors real
+  naukri.com/mnjuser/homepage as verified on 2026-07-16. Two anchors mirror
+  the real markup:
+    (a) profile-nav link wrapped in .view-profile-wrapper
+    (b) top-nav user avatar (.nI-gNb-user-img) that opens a slide-in drawer
+        containing the Logout anchor (a[data-type='logoutLink'] title='Logout')
+-->
+<head>
+  <meta charset="UTF-8"/>
+  <title>Naukri – Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; }
+    nav { display: flex; gap: 16px; margin-bottom: 24px; align-items: center; }
+    .view-profile-wrapper { display: inline-block; padding: 6px 14px; background: #005aff; color: #fff; border-radius: 4px; }
+    .view-profile-wrapper a { color: #fff; text-decoration: none; font-weight: bold; }
+    .nI-gNb-user-img { width: 32px; height: 32px; border-radius: 50%; background: #ccc; cursor: pointer; margin-left: auto; display: inline-block; text-align: center; line-height: 32px; }
+    .drawer-wrapper { position: fixed; top: 0; right: 0; width: 320px; height: 100%; background: #fff; box-shadow: -2px 0 8px rgba(0,0,0,0.15); padding: 52px 30px 30px; overflow-y: auto; display: none; z-index: 1000; }
+    .drawer-wrapper.open { display: block; }
+    .drawer-wrapper .close { position: absolute; top: 12px; right: 12px; background: none; border: none; cursor: pointer; font-size: 20px; }
+    .nI-gNb-info__heading-name { font-weight: bold; }
+    .nI-gNb-de__list { margin-top: 20px; }
+    .nI-gNb-list-item { padding: 8px 0; border-bottom: 1px solid #eee; }
+    .nI-gNb-list-cta { color: #005aff; text-decoration: none; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div data-mock="dash">
+    <h1>Dashboard</h1>
+    <nav>
+      <div class="view-profile-wrapper">
+        <a href="/mnjuser/profile">View profile</a>
+      </div>
+      <!-- Top-nav avatar: mock stand-in for real Naukri's user-image trigger. -->
+      <div class="nI-gNb-user-img" onclick="document.getElementById('drawer').classList.add('open');">A</div>
+    </nav>
+    <p>Welcome back! Browse jobs or update your profile.</p>
+
+    <!-- Legacy simple logout link kept for backward-compat with old tests. -->
+    <form method="post" action="/nlogin/logout">
+      <a id="logout" href="#" onclick="this.closest('form').submit(); return false;">Logout (legacy)</a>
+    </form>
+  </div>
+
+  <!-- Drawer with the real-Naukri logout anchor. Hidden until the avatar
+       trigger is clicked. Anchor uses href='/nlogin/logout' so a plain click
+       triggers a browser GET, matching real Naukri's drawer behaviour. -->
+  <div id="drawer" class="drawer-wrapper">
+    <button type="button" aria-label="Close" class="close"
+            onclick="document.getElementById('drawer').classList.remove('open');">x</button>
+    <div class="nI-gNb-drawer__expand">
+      <div class="nI-gNb-de__profile">
+        <div class="nI-gNb-profile-details">
+          <div class="nI-gNb-info__heading">
+            <span class="nI-gNb-info__heading-name">Mock User</span>
+          </div>
+          <div class="nI-gNb-info__sub-heading">Mock role at Mock Company</div>
+        </div>
+      </div>
+      <div class="nI-gNb-de__list">
+        <div class="nI-gNb-list-item">
+          <a class="nI-gNb-list-cta" title="Logout" rel="external"
+             data-type="logoutLink" role="button" tabindex="0"
+             href="/nlogin/logout">Logout</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

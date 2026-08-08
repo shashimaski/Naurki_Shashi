@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    background: linear-gradient(180deg, #050915 0%, #0b1226 100%);
+    color: #e6edf3;
+    font-family: Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .mono { font-family: "JetBrains Mono", ui-monospace, monospace; letter-spacing: -0.02em; }
+}
+@layer components {
+  .card { @apply rounded-card shadow-card border border-white/10 bg-white/[0.04] backdrop-blur-md; }
+  .accent-gradient { background-image: linear-gradient(90deg, #22d3ee, #a855f7); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+  .input {
+    @apply w-full rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2.5 text-text-primary
+           placeholder:text-text-muted outline-none transition-colors
+           focus:border-accent-cyan focus:ring-2 focus:ring-accent-cyan/25;
+  }
+  .input:read-only { @apply bg-white/[0.02] cursor-not-allowed; }
+
+  .btn-primary {
+    @apply relative rounded-lg px-6 py-2.5 font-semibold text-slate-950
+           transition-all hover:brightness-110 active:scale-[0.98]
+           focus:outline-none focus:ring-2 focus:ring-accent-cyan/40
+           disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100 disabled:active:scale-100;
+    background-image: linear-gradient(90deg, #22d3ee, #a855f7);
+    box-shadow: 0 6px 20px rgba(34, 211, 238, 0.25);
+  }
+  .btn-primary:hover:not(:disabled) { box-shadow: 0 8px 28px rgba(168, 85, 247, 0.35); }
+
+  .btn-secondary {
+    @apply rounded-lg border border-white/15 bg-white/[0.04] px-4 py-2 text-text-primary
+           transition-colors hover:border-accent-cyan hover:text-accent-cyan hover:bg-white/[0.06]
+           focus:outline-none focus:ring-2 focus:ring-accent-cyan/40
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+}
+
+/* Root CSS variable — used by inputs' `accent-[var(--accent)]` for checkbox tint */
+:root {
+  --accent: #22d3ee;
+}
+
+/* Chrome/Electron autofill override — otherwise saved-password inputs go bright yellow */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: #e6edf3 !important;
+  -webkit-box-shadow: 0 0 0 30px #0b1226 inset !important;
+  caret-color: #e6edf3;
+  transition: background-color 5000s ease-in-out 0s;
+}
