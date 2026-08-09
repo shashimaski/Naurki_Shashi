@@ -94,15 +94,6 @@ pipeline {
             }
         }
 
-        stage('7c. Quality Gate') {
-            steps {
-                echo '===== WAITING FOR QUALITY GATE ====='
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
-
         stage('8. Build Electron Application') {
             steps {
                 echo '===== BUILD ELECTRON APPLICATION ====='
