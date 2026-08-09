@@ -6,7 +6,7 @@ pipeline {
             steps {
                 echo '===== CHECKOUT SOURCE CODE ====='
                 git branch: 'main',
-                    url: 'https://github.com/harshithapv15/Naukri.git'
+                    url: 'https://github.com/shashimaski/Naurki_Shashi.git'
             }
         }
 
