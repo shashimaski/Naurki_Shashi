@@ -144,6 +144,18 @@ pipeline {
                                   fingerprint: true
             }
         }
+
+        stage('11. Upload to Azure Blob Storage') {
+            steps {
+                echo '===== UPLOADING TO AZURE BLOB STORAGE ====='
+                azureUpload(
+                    containerName: 'smcont',
+                    storageType: 'blobstorage',
+                    filesPath: 'dist/**/*.exe',
+                    storageCredentialId: 'azure-storage-cred'
+                )
+            }
+        }
     }
 
     post {
