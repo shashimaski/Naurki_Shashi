@@ -2,11 +2,9 @@ pipeline {
     agent any
 
     stages {
-
         stage('1. Checkout') {
             steps {
                 echo '===== CHECKOUT SOURCE CODE ====='
-
                 git branch: 'main',
                     url: 'https://github.com/harshithapv15/Naukri.git'
             }
@@ -15,22 +13,17 @@ pipeline {
         stage('2. Verify Environment') {
             steps {
                 echo '===== VERIFY ENVIRONMENT ====='
-
                 bat '''
-                    echo ===== JAVA =====
-                    java -version
-
-                    echo ===== MAVEN =====
-                    mvn -version
-
-                    echo ===== NODE =====
-                    node -v
-
-                    echo ===== NPM =====
-                    npm -v
-
-                    echo ===== GIT =====
-                    git --version
+                echo ===== JAVA =====
+                java -version
+                echo ===== MAVEN =====
+                mvn -version
+                echo ===== NODE =====
+                node -v
+                echo ===== NPM =====
+                npm -v
+                echo ===== GIT =====
+                git --version
                 '''
             }
         }
@@ -38,13 +31,11 @@ pipeline {
         stage('3. Fetch Java 17 JRE') {
             steps {
                 echo '===== FETCH APPLICATION JRE ====='
-
                 powershell '''
-                    & "$env:WORKSPACE\\build\\fetch-jre.ps1"
-
-                    if ($LASTEXITCODE -ne 0) {
-                        exit $LASTEXITCODE
-                    }
+                & "$env:WORKSPACE\\build\\fetch-jre.ps1"
+                if ($LASTEXITCODE -ne 0) {
+                    exit $LASTEXITCODE
+                }
                 '''
             }
         }
@@ -52,13 +43,11 @@ pipeline {
         stage('4. Install Playwright Chromium') {
             steps {
                 echo '===== INSTALL PLAYWRIGHT CHROMIUM ====='
-
                 powershell '''
-                    & "$env:WORKSPACE\\build\\install-playwright.ps1"
-
-                    if ($LASTEXITCODE -ne 0) {
-                        exit $LASTEXITCODE
-                    }
+                & "$env:WORKSPACE\\build\\install-playwright.ps1"
+                if ($LASTEXITCODE -ne 0) {
+                    exit $LASTEXITCODE
+                }
                 '''
             }
         }
@@ -66,9 +55,8 @@ pipeline {
         stage('5. Build Backend') {
             steps {
                 echo '===== BUILD BACKEND ====='
-
                 bat '''
-                    mvn -f backend\\pom.xml clean package -DskipTests -Dmaven.test.skip=true
+                mvn -f backend\\pom.xml clean package -DskipTests -Dmaven.test.skip=true
                 '''
             }
         }
@@ -76,9 +64,8 @@ pipeline {
         stage('6. Build Mock Server') {
             steps {
                 echo '===== BUILD MOCK SERVER ====='
-
                 bat '''
-                    mvn -f mock-naukri\\pom.xml clean package -DskipTests -Dmaven.test.skip=true
+                mvn -f mock-naukri\\pom.xml clean package -DskipTests -Dmaven.test.skip=true
                 '''
             }
         }
@@ -86,27 +73,44 @@ pipeline {
         stage('7. Build Frontend') {
             steps {
                 echo '===== BUILD FRONTEND ====='
-
                 powershell '''
-                    & "$env:WORKSPACE\\build\\phases\\build-frontend.ps1"
-
-                    if ($LASTEXITCODE -ne 0) {
-                        exit $LASTEXITCODE
-                    }
+                & "$env:WORKSPACE\\build\\phases\\build-frontend.ps1"
+                if ($LASTEXITCODE -ne 0) {
+                    exit $LASTEXITCODE
+                }
                 '''
+            }
+        }
+
+        stage('7b. SonarQube Analysis') {
+            steps {
+                echo '===== SONARQUBE ANALYSIS ====='
+                script {
+                    def scannerHome = tool 'SonarScanner'
+                    withSonarQubeEnv('SonarQubeServer') {
+                        bat "\"${scannerHome}\\bin\\sonar-scanner.bat\""
+                    }
+                }
+            }
+        }
+
+        stage('7c. Quality Gate') {
+            steps {
+                echo '===== WAITING FOR QUALITY GATE ====='
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
         stage('8. Build Electron Application') {
             steps {
                 echo '===== BUILD ELECTRON APPLICATION ====='
-
                 powershell '''
-                    & "$env:WORKSPACE\\build\\phases\\build-electron.ps1" -Variant Ship
-
-                    if ($LASTEXITCODE -ne 0) {
-                        exit $LASTEXITCODE
-                    }
+                & "$env:WORKSPACE\\build\\phases\\build-electron.ps1" -Variant Ship
+                if ($LASTEXITCODE -ne 0) {
+                    exit $LASTEXITCODE
+                }
                 '''
             }
         }
@@ -114,35 +118,30 @@ pipeline {
         stage('9. Verify Artifacts') {
             steps {
                 echo '===== VERIFY ARTIFACTS ====='
-
                 powershell '''
-                    $dist = "$env:WORKSPACE\\dist"
+                $dist = "$env:WORKSPACE\\dist"
+                if (-not (Test-Path $dist)) {
+                    throw "dist directory does not exist"
+                }
 
-                    if (-not (Test-Path $dist)) {
-                        throw "dist directory does not exist"
-                    }
+                Write-Host ""
+                Write-Host "===== BUILD ARTIFACTS ====="
+                Get-ChildItem $dist -Recurse -File |
+                    Select-Object FullName, Length
 
-                    Write-Host ""
-                    Write-Host "===== BUILD ARTIFACTS ====="
+                $exeFiles = Get-ChildItem $dist -Recurse -Filter "*.exe"
+                if ($exeFiles.Count -eq 0) {
+                    throw "No EXE artifacts found"
+                }
 
-                    Get-ChildItem $dist -Recurse -File |
-                        Select-Object FullName, Length
+                Write-Host ""
+                Write-Host "===== EXE ARTIFACTS FOUND ====="
+                foreach ($exe in $exeFiles) {
+                    Write-Host $exe.FullName
+                }
 
-                    $exeFiles = Get-ChildItem $dist -Recurse -Filter "*.exe"
-
-                    if ($exeFiles.Count -eq 0) {
-                        throw "No EXE artifacts found"
-                    }
-
-                    Write-Host ""
-                    Write-Host "===== EXE ARTIFACTS FOUND ====="
-
-                    foreach ($exe in $exeFiles) {
-                        Write-Host $exe.FullName
-                    }
-
-                    Write-Host ""
-                    Write-Host "Artifact verification SUCCESS"
+                Write-Host ""
+                Write-Host "Artifact verification SUCCESS"
                 '''
             }
         }
@@ -150,37 +149,31 @@ pipeline {
         stage('10. Archive Artifacts') {
             steps {
                 echo '===== ARCHIVING ARTIFACTS ====='
-
                 archiveArtifacts artifacts: 'dist/**/*.exe',
-                                 fingerprint: true
+                                  fingerprint: true
             }
         }
     }
 
     post {
-
         success {
             echo '''
-========================================
-       NAUKRI CI BUILD SUCCESS
-========================================
-
-Artifacts successfully generated and archived.
-========================================
-'''
+            ========================================
+            NAUKRI CI BUILD SUCCESS
+            ========================================
+            Artifacts successfully generated and archived.
+            ========================================
+            '''
         }
-
         failure {
             echo '''
-========================================
-       NAUKRI CI BUILD FAILED
-========================================
-
-Check the first failed stage in Console Output.
-========================================
-'''
+            ========================================
+            NAUKRI CI BUILD FAILED
+            ========================================
+            Check the first failed stage in Console Output.
+            ========================================
+            '''
         }
-
         always {
             echo '===== Jenkins CI pipeline finished ====='
         }
