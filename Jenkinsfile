@@ -7,6 +7,12 @@ pipeline {
         booleanParam(name: 'DEPLOY', defaultValue: false, description: 'Run the Ansible deploy stage after a successful build')
     }
 
+    environment {
+        STORAGE_ACCOUNT   = 'CHANGE_ME_storageaccountname'
+        STORAGE_CONTAINER = 'naukri-artifacts'
+        AZURE_CREDS       = credentials('azure-storage-sas-token')
+    }
+
     stages {
 
         stage('1. Checkout') {
@@ -48,9 +54,6 @@ pipeline {
         }
 
         stage('4. Install Playwright Chromium') {
-            // NOTE: this bundles Chromium into electron\resources\ so it ships
-            // INSIDE the .exe (see stage 8). It is a build-time step only —
-            // do not remove it, and do not try to reproduce it on the target VM.
             steps {
                 echo '===== INSTALL PLAYWRIGHT CHROMIUM (bundled into artifact) ====='
                 powershell '''
@@ -143,18 +146,54 @@ pipeline {
             }
         }
 
-        stage('11. Deploy via Ansible') {
+        stage('11. Distribute Artifact') {
+            parallel {
+                stage('Upload to Storage Account') {
+                    steps {
+                        echo '===== UPLOADING VERSIONED BLOB TO AZURE STORAGE ACCOUNT ====='
+                        powershell '''
+                            $installer = Get-ChildItem "$env:WORKSPACE\\dist" -Filter "NaukriAutomator Setup*.exe" | Select-Object -First 1
+                            $blobName = "NaukriAutomator-Setup-$env:APP_VERSION.exe"
+
+                            az storage blob upload `
+                                --account-name $env:STORAGE_ACCOUNT `
+                                --container-name $env:STORAGE_CONTAINER `
+                                --name $blobName `
+                                --file $installer.FullName `
+                                --sas-token $env:AZURE_CREDS
+                            if ($LASTEXITCODE -ne 0) {
+                                exit $LASTEXITCODE
+                            }
+
+                            Write-Host "Uploaded as $blobName (no overwrite -- every version is retained)"
+                        '''
+                    }
+                }
+                stage('Copy to Secondary Target VM') {
+                    steps {
+                        echo '===== COPYING TO SECONDARY TARGET VM ====='
+                        powershell '''
+                            $installer = Get-ChildItem "$env:WORKSPACE\\dist" -Filter "NaukriAutomator Setup*.exe" | Select-Object -First 1
+                            $destName = "NaukriAutomator-Setup-$env:APP_VERSION.exe"
+                            Copy-Item $installer.FullName -Destination "\\\\CHANGE_ME_SECONDARY_VM\\share\\artifacts\\$destName" -Force
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('12. Deploy via Ansible') {
             when {
                 expression { return params.DEPLOY }
             }
             steps {
-                echo '===== DEPLOY TO WINDOWS VM VIA ANSIBLE ====='
-                // Ansible controller must be reachable from this agent
-                // (Linux agent, or WSL/Ansible-on-Windows if the agent is Windows).
+                echo '===== DEPLOY TO WINDOWS VM VIA ANSIBLE (pulls versioned blob from Storage Account) ====='
                 bat """
                     ansible-playbook -i ${params.TARGET_VM_INVENTORY} ansible\\install_naukri.yml ^
                         -e app_version=${params.APP_VERSION} ^
-                        -e artifact_repo_path=%WORKSPACE%\\dist
+                        -e storage_account=%STORAGE_ACCOUNT% ^
+                        -e storage_container=%STORAGE_CONTAINER% ^
+                        -e sas_token=%AZURE_CREDS%
                 """
             }
         }
@@ -166,7 +205,7 @@ pipeline {
             ========================================
             NAUKRI CI BUILD SUCCESS
             ========================================
-            Artifacts successfully generated and archived.
+            Artifacts successfully generated, archived and distributed.
             ========================================
             '''
         }
