@@ -1,21 +1,21 @@
 ---
-- name: Install NaukriAutomator
+- name: Install NaukriAutomator from Storage Account
   hosts: windows
   become: true
   become_method: runas
   become_flags: logon_type=new_credentials logon_flags=netcredentials_only
   vars:
     app_version: "0.1.0"
-    installer_name: "NaukriAutomator Setup {{ app_version }}.exe"
-    installer_src: "{{ artifact_repo_path }}/{{ installer_name }}"
+    installer_name: "NaukriAutomator-Setup-{{ app_version }}.exe"
+    blob_url: "https://{{ storage_account }}.blob.core.windows.net/{{ storage_container }}/{{ installer_name }}?{{ sas_token }}"
     remote_tmp: "C:\\Windows\\Temp\\{{ installer_name }}"
     install_root: "C:\\Program Files\\NaukriAutomator"
     product_guid: "1b2ba121-4d86-50ed-acec-34b234644301"
 
   tasks:
-    - name: Copy installer to VM
-      ansible.windows.win_copy:
-        src: "{{ installer_src }}"
+    - name: Download versioned installer from Storage Account
+      ansible.windows.win_get_url:
+        url: "{{ blob_url }}"
         dest: "{{ remote_tmp }}"
 
     - name: Check currently installed version
@@ -31,7 +31,7 @@
           {{ 'No existing install found' if not current_install.exists
              else 'Installed version: ' + current_install.value }}
 
-    - name: Install or upgrade
+    - name: Install or upgrade to requested version
       ansible.windows.win_package:
         path: "{{ remote_tmp }}"
         product_id: "{{ product_guid }}"
@@ -49,7 +49,7 @@
       debug:
         msg: "NaukriAutomator {{ app_version }} — changed: {{ install_result.changed }}, path: {{ install_root }}"
 
-    - name: Clean up installer copy
+    - name: Clean up downloaded installer
       ansible.windows.win_file:
         path: "{{ remote_tmp }}"
         state: absent
