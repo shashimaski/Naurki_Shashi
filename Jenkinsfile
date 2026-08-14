@@ -189,7 +189,7 @@ pipeline {
             steps {
                 echo '===== DEPLOY TO WINDOWS VM VIA ANSIBLE (pulls versioned blob from Storage Account) ====='
                 bat """
-                    ansible-playbook -i ${params.TARGET_VM_INVENTORY} ansible\\install_naukri.yml ^
+                    wsl ansible-playbook -i ${params.TARGET_VM_INVENTORY} ansible/install_naukri.yml ^
                         -e app_version=${params.APP_VERSION} ^
                         -e storage_account=%STORAGE_ACCOUNT% ^
                         -e storage_container=%STORAGE_CONTAINER% ^
