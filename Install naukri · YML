@@ -1,13 +1,16 @@
 ---
 - name: Install NaukriAutomator
   hosts: windows
+  become: true
+  become_method: runas
+  become_flags: logon_type=new_credentials logon_flags=netcredentials_only
   vars:
     app_version: "0.1.0"
     installer_name: "NaukriAutomator Setup {{ app_version }}.exe"
     installer_src: "{{ artifact_repo_path }}/{{ installer_name }}"
-    remote_tmp: "C:\\Users\\{{ ansible_user }}\\AppData\\Local\\Temp\\{{ installer_name }}"
-    install_root: "C:\\Users\\{{ ansible_user }}\\AppData\\Local\\Programs\\NaukriAutomator"
-    product_guid: "{PUT-THE-GUID-HERE}"
+    remote_tmp: "C:\\Windows\\Temp\\{{ installer_name }}"
+    install_root: "C:\\Program Files\\NaukriAutomator"
+    product_guid: "1b2ba121-4d86-50ed-acec-34b234644301"
 
   tasks:
     - name: Copy installer to VM
@@ -17,7 +20,7 @@
 
     - name: Check currently installed version
       ansible.windows.win_reg_stat:
-        path: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{{ product_guid }}"
+        path: "HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{{ product_guid }}"
         name: DisplayVersion
       register: current_install
       failed_when: false
