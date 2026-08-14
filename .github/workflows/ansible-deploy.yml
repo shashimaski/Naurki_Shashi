@@ -1,0 +1,62 @@
+name: Deploy Naukri with Ansible
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_version:
+        description: "Naukri application version"
+        required: true
+        default: "0.1.0"
+
+jobs:
+
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install ansible pywinrm
+
+      - name: Install Ansible Windows collection
+        run: |
+          ansible-galaxy collection install ansible.windows
+
+      - name: Verify Ansible
+        run: |
+          ansible --version
+
+      - name: Test VM2 connectivity
+        env:
+          VM2_HOST: ${{ secrets.VM2_HOST }}
+          VM2_USERNAME: ${{ secrets.VM2_USERNAME }}
+          VM2_PASSWORD: ${{ secrets.VM2_PASSWORD }}
+        run: |
+          ansible windows \
+            -i Inventory.ini \
+            -m ansible.windows.win_ping
+
+      - name: Deploy NaukriAutomator
+        env:
+          VM2_HOST: ${{ secrets.VM2_HOST }}
+          VM2_USERNAME: ${{ secrets.VM2_USERNAME }}
+          VM2_PASSWORD: ${{ secrets.VM2_PASSWORD }}
+
+          STORAGE_ACCOUNT: ${{ secrets.STORAGE_ACCOUNT }}
+          STORAGE_CONTAINER: ${{ secrets.STORAGE_CONTAINER }}
+          STORAGE_SAS_TOKEN: ${{ secrets.STORAGE_SAS_TOKEN }}
+
+        run: |
+          ansible-playbook \
+            -i Inventory.ini \
+            "Install naukri.yml" \
+            -e "app_version=${{ github.event.inputs.app_version }}" \
+            -e "storage_account=${STORAGE_ACCOUNT}" \
+            -e "storage_container=${STORAGE_CONTAINER}" \
+            -e "sas_token=${STORAGE_SAS_TOKEN}"
