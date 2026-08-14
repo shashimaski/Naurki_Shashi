@@ -1,10 +1,10 @@
 [windows]
-naukri_vm ansible_host=CHANGE_ME_TARGET_VM_IP
+naukri_vm ansible_host={{ lookup('env', 'VM2_HOST') }}
 
 [windows:vars]
-ansible_user=azureuser
-ansible_password=CHANGE_ME_PASSWORD
+ansible_user={{ lookup('env', 'VM2_USERNAME') }}
+ansible_password={{ lookup('env', 'VM2_PASSWORD') }}
 ansible_connection=winrm
-ansible_winrm_transport=basic
+ansible_winrm_transport=ntlm
 ansible_port=5985
 ansible_winrm_server_cert_validation=ignore
