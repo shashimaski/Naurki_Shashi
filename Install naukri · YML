@@ -1,55 +1,75 @@
----
-- name: Install NaukriAutomator from Storage Account
-  hosts: windows
-  become: true
-  become_method: runas
-  become_flags: logon_type=new_credentials logon_flags=netcredentials_only
-  vars:
-    app_version: "0.1.0"
-    installer_name: "NaukriAutomator-Setup-{{ app_version }}.exe"
-    blob_url: "https://{{ storage_account }}.blob.core.windows.net/{{ storage_container }}/{{ installer_name }}?{{ sas_token }}"
-    remote_tmp: "C:\\Windows\\Temp\\{{ installer_name }}"
-    install_root: "C:\\Program Files\\NaukriAutomator"
-    product_guid: "1b2ba121-4d86-50ed-acec-34b234644301"
+name: Deploy Naukri with Ansible
 
-  tasks:
-    - name: Download versioned installer from Storage Account
-      ansible.windows.win_get_url:
-        url: "{{ blob_url }}"
-        dest: "{{ remote_tmp }}"
+on:
+  workflow_dispatch:
+    inputs:
+      app_version:
+        description: "Naukri application version"
+        required: true
+        default: "0.1.0"
 
-    - name: Check currently installed version
-      ansible.windows.win_reg_stat:
-        path: "HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{{ product_guid }}"
-        name: DisplayVersion
-      register: current_install
-      failed_when: false
+jobs:
 
-    - name: Report current state
-      debug:
-        msg: >-
-          {{ 'No existing install found' if not current_install.exists
-             else 'Installed version: ' + current_install.value }}
+  deploy:
 
-    - name: Install or upgrade to requested version
-      ansible.windows.win_package:
-        path: "{{ remote_tmp }}"
-        product_id: "{{ product_guid }}"
-        arguments: "/S"
-        state: present
-      register: install_result
+    runs-on: ubuntu-latest
 
-    - name: Confirm install path exists
-      ansible.windows.win_stat:
-        path: "{{ install_root }}"
-      register: install_dir_check
-      failed_when: not install_dir_check.stat.exists
+    steps:
 
-    - name: Report result
-      debug:
-        msg: "NaukriAutomator {{ app_version }} — changed: {{ install_result.changed }}, path: {{ install_root }}"
+      # 1. Checkout GitHub repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Clean up downloaded installer
-      ansible.windows.win_file:
-        path: "{{ remote_tmp }}"
-        state: absent
+      # 2. Show files - useful for troubleshooting
+      - name: Show repository files
+        run: |
+          echo "===== REPOSITORY FILES ====="
+          find . -maxdepth 3 -type f | sort
+
+      # 3. Install Ansible
+      - name: Install Ansible
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install ansible pywinrm
+
+      # 4. Install Windows Ansible collection
+      - name: Install Windows collection
+        run: |
+          ansible-galaxy collection install ansible.windows
+
+      # 5. Verify Ansible
+      - name: Verify Ansible
+        run: |
+          ansible --version
+
+      # 6. Test connection to VM2
+      - name: Test VM2 connectivity
+        env:
+          VM2_HOST: ${{ secrets.VM2_HOST }}
+          VM2_USERNAME: ${{ secrets.VM2_USERNAME }}
+          VM2_PASSWORD: ${{ secrets.VM2_PASSWORD }}
+
+        run: |
+          ansible windows \
+            -i Inventory.ini \
+            -m ansible.windows.win_ping
+
+      # 7. Deploy NaukriAutomator
+      - name: Deploy NaukriAutomator
+        env:
+          VM2_HOST: ${{ secrets.VM2_HOST }}
+          VM2_USERNAME: ${{ secrets.VM2_USERNAME }}
+          VM2_PASSWORD: ${{ secrets.VM2_PASSWORD }}
+
+          STORAGE_ACCOUNT: ${{ secrets.STORAGE_ACCOUNT }}
+          STORAGE_CONTAINER: ${{ secrets.STORAGE_CONTAINER }}
+          STORAGE_SAS_TOKEN: ${{ secrets.STORAGE_SAS_TOKEN }}
+
+        run: |
+          ansible-playbook \
+            -i Inventory.ini \
+            "Install naukri · YML" \
+            -e "app_version=${{ github.event.inputs.app_version }}" \
+            -e "storage_account=${STORAGE_ACCOUNT}" \
+            -e "storage_container=${STORAGE_CONTAINER}" \
+            -e "sas_token=${STORAGE_SAS_TOKEN}"
