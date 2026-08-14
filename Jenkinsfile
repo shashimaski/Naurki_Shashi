@@ -1,12 +1,19 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'APP_VERSION', defaultValue: '0.1.0', description: 'Version being built/deployed')
+        string(name: 'TARGET_VM_INVENTORY', defaultValue: 'inventory.ini', description: 'Ansible inventory file for the Windows target VM(s)')
+        booleanParam(name: 'DEPLOY', defaultValue: false, description: 'Run the Ansible deploy stage after a successful build')
+    }
+
     stages {
+
         stage('1. Checkout') {
             steps {
                 echo '===== CHECKOUT SOURCE CODE ====='
                 git branch: 'main',
-                    url: 'https://github.com/shashimaski/Naurki_Shashi.git'
+                    url: 'https://github.com/harshithapv15/Naukri.git'
             }
         }
 
@@ -14,16 +21,16 @@ pipeline {
             steps {
                 echo '===== VERIFY ENVIRONMENT ====='
                 bat '''
-                echo ===== JAVA =====
-                java -version
-                echo ===== MAVEN =====
-                mvn -version
-                echo ===== NODE =====
-                node -v
-                echo ===== NPM =====
-                npm -v
-                echo ===== GIT =====
-                git --version
+                    echo ===== JAVA =====
+                    java -version
+                    echo ===== MAVEN =====
+                    mvn -version
+                    echo ===== NODE =====
+                    node -v
+                    echo ===== NPM =====
+                    npm -v
+                    echo ===== GIT =====
+                    git --version
                 '''
             }
         }
@@ -32,22 +39,25 @@ pipeline {
             steps {
                 echo '===== FETCH APPLICATION JRE ====='
                 powershell '''
-                & "$env:WORKSPACE\\build\\fetch-jre.ps1"
-                if ($LASTEXITCODE -ne 0) {
-                    exit $LASTEXITCODE
-                }
+                    & "$env:WORKSPACE\\build\\fetch-jre.ps1"
+                    if ($LASTEXITCODE -ne 0) {
+                        exit $LASTEXITCODE
+                    }
                 '''
             }
         }
 
         stage('4. Install Playwright Chromium') {
+            // NOTE: this bundles Chromium into electron\resources\ so it ships
+            // INSIDE the .exe (see stage 8). It is a build-time step only —
+            // do not remove it, and do not try to reproduce it on the target VM.
             steps {
-                echo '===== INSTALL PLAYWRIGHT CHROMIUM ====='
+                echo '===== INSTALL PLAYWRIGHT CHROMIUM (bundled into artifact) ====='
                 powershell '''
-                & "$env:WORKSPACE\\build\\install-playwright.ps1"
-                if ($LASTEXITCODE -ne 0) {
-                    exit $LASTEXITCODE
-                }
+                    & "$env:WORKSPACE\\build\\install-playwright.ps1"
+                    if ($LASTEXITCODE -ne 0) {
+                        exit $LASTEXITCODE
+                    }
                 '''
             }
         }
@@ -56,7 +66,7 @@ pipeline {
             steps {
                 echo '===== BUILD BACKEND ====='
                 bat '''
-                mvn -f backend\\pom.xml clean package -DskipTests -Dmaven.test.skip=true
+                    mvn -f backend\\pom.xml clean package -DskipTests -Dmaven.test.skip=true
                 '''
             }
         }
@@ -65,7 +75,7 @@ pipeline {
             steps {
                 echo '===== BUILD MOCK SERVER ====='
                 bat '''
-                mvn -f mock-naukri\\pom.xml clean package -DskipTests -Dmaven.test.skip=true
+                    mvn -f mock-naukri\\pom.xml clean package -DskipTests -Dmaven.test.skip=true
                 '''
             }
         }
@@ -74,23 +84,11 @@ pipeline {
             steps {
                 echo '===== BUILD FRONTEND ====='
                 powershell '''
-                & "$env:WORKSPACE\\build\\phases\\build-frontend.ps1"
-                if ($LASTEXITCODE -ne 0) {
-                    exit $LASTEXITCODE
-                }
-                '''
-            }
-        }
-
-        stage('7b. SonarQube Analysis') {
-            steps {
-                echo '===== SONARQUBE ANALYSIS ====='
-                script {
-                    def scannerHome = tool 'SonarScanner'
-                    withSonarQubeEnv('SonarQubeServer') {
-                        bat "\"${scannerHome}\\bin\\sonar-scanner.bat\""
+                    & "$env:WORKSPACE\\build\\phases\\build-frontend.ps1"
+                    if ($LASTEXITCODE -ne 0) {
+                        exit $LASTEXITCODE
                     }
-                }
+                '''
             }
         }
 
@@ -98,10 +96,10 @@ pipeline {
             steps {
                 echo '===== BUILD ELECTRON APPLICATION ====='
                 powershell '''
-                & "$env:WORKSPACE\\build\\phases\\build-electron.ps1" -Variant Ship
-                if ($LASTEXITCODE -ne 0) {
-                    exit $LASTEXITCODE
-                }
+                    & "$env:WORKSPACE\\build\\phases\\build-electron.ps1" -Variant Ship
+                    if ($LASTEXITCODE -ne 0) {
+                        exit $LASTEXITCODE
+                    }
                 '''
             }
         }
@@ -110,29 +108,29 @@ pipeline {
             steps {
                 echo '===== VERIFY ARTIFACTS ====='
                 powershell '''
-                $dist = "$env:WORKSPACE\\dist"
-                if (-not (Test-Path $dist)) {
-                    throw "dist directory does not exist"
-                }
+                    $dist = "$env:WORKSPACE\\dist"
+                    if (-not (Test-Path $dist)) {
+                        throw "dist directory does not exist"
+                    }
 
-                Write-Host ""
-                Write-Host "===== BUILD ARTIFACTS ====="
-                Get-ChildItem $dist -Recurse -File |
-                    Select-Object FullName, Length
+                    Write-Host ""
+                    Write-Host "===== BUILD ARTIFACTS ====="
+                    Get-ChildItem $dist -Recurse -File |
+                        Select-Object FullName, Length
 
-                $exeFiles = Get-ChildItem $dist -Recurse -Filter "*.exe"
-                if ($exeFiles.Count -eq 0) {
-                    throw "No EXE artifacts found"
-                }
+                    $exeFiles = Get-ChildItem $dist -Recurse -Filter "*.exe"
+                    if ($exeFiles.Count -eq 0) {
+                        throw "No EXE artifacts found"
+                    }
 
-                Write-Host ""
-                Write-Host "===== EXE ARTIFACTS FOUND ====="
-                foreach ($exe in $exeFiles) {
-                    Write-Host $exe.FullName
-                }
+                    Write-Host ""
+                    Write-Host "===== EXE ARTIFACTS FOUND ====="
+                    foreach ($exe in $exeFiles) {
+                        Write-Host $exe.FullName
+                    }
 
-                Write-Host ""
-                Write-Host "Artifact verification SUCCESS"
+                    Write-Host ""
+                    Write-Host "Artifact verification SUCCESS"
                 '''
             }
         }
@@ -145,15 +143,19 @@ pipeline {
             }
         }
 
-        stage('11. Upload to Azure Blob Storage') {
+        stage('11. Deploy via Ansible') {
+            when {
+                expression { return params.DEPLOY }
+            }
             steps {
-                echo '===== UPLOADING TO AZURE BLOB STORAGE ====='
-                azureUpload(
-                    containerName: 'smcont',
-                    storageType: 'blobstorage',
-                    filesPath: 'dist/**/*.exe',
-                    storageCredentialId: 'azure-storage-cred'
-                )
+                echo '===== DEPLOY TO WINDOWS VM VIA ANSIBLE ====='
+                // Ansible controller must be reachable from this agent
+                // (Linux agent, or WSL/Ansible-on-Windows if the agent is Windows).
+                bat """
+                    ansible-playbook -i ${params.TARGET_VM_INVENTORY} ansible\\install_naukri.yml ^
+                        -e app_version=${params.APP_VERSION} ^
+                        -e artifact_repo_path=%WORKSPACE%\\dist
+                """
             }
         }
     }
