@@ -1,0 +1,52 @@
+---
+- name: Install NaukriAutomator
+  hosts: windows
+  vars:
+    app_version: "0.1.0"
+    installer_name: "NaukriAutomator Setup {{ app_version }}.exe"
+    installer_src: "{{ artifact_repo_path }}/{{ installer_name }}"
+    remote_tmp: "C:\\Users\\{{ ansible_user }}\\AppData\\Local\\Temp\\{{ installer_name }}"
+    install_root: "C:\\Users\\{{ ansible_user }}\\AppData\\Local\\Programs\\NaukriAutomator"
+    product_guid: "{PUT-THE-GUID-HERE}"
+
+  tasks:
+    - name: Copy installer to VM
+      ansible.windows.win_copy:
+        src: "{{ installer_src }}"
+        dest: "{{ remote_tmp }}"
+
+    - name: Check currently installed version
+      ansible.windows.win_reg_stat:
+        path: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{{ product_guid }}"
+        name: DisplayVersion
+      register: current_install
+      failed_when: false
+
+    - name: Report current state
+      debug:
+        msg: >-
+          {{ 'No existing install found' if not current_install.exists
+             else 'Installed version: ' + current_install.value }}
+
+    - name: Install or upgrade
+      ansible.windows.win_package:
+        path: "{{ remote_tmp }}"
+        product_id: "{{ product_guid }}"
+        arguments: "/S"
+        state: present
+      register: install_result
+
+    - name: Confirm install path exists
+      ansible.windows.win_stat:
+        path: "{{ install_root }}"
+      register: install_dir_check
+      failed_when: not install_dir_check.stat.exists
+
+    - name: Report result
+      debug:
+        msg: "NaukriAutomator {{ app_version }} — changed: {{ install_result.changed }}, path: {{ install_root }}"
+
+    - name: Clean up installer copy
+      ansible.windows.win_file:
+        path: "{{ remote_tmp }}"
+        state: absent
