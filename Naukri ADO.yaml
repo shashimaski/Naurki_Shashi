@@ -10,6 +10,10 @@ variables:
 
 stages:
 
+# ============================================================
+# BUILD STAGE
+# ============================================================
+
 - stage: Build
   displayName: 'Naukri CI Build'
 
@@ -20,16 +24,16 @@ stages:
 
     steps:
 
-    # ========================================================
+    # --------------------------------------------------------
     # CHECKOUT
-    # ========================================================
+    # --------------------------------------------------------
 
     - checkout: self
       clean: true
 
-    # ========================================================
-    # VERIFY CHECKOUT
-    # ========================================================
+    # --------------------------------------------------------
+    # VERIFY ADO CHECKOUT
+    # --------------------------------------------------------
 
     - task: PowerShell@2
       displayName: 'Verify ADO Checkout'
@@ -72,9 +76,9 @@ stages:
 
           Write-Host "Found: $jreScript"
 
-    # ========================================================
-    # VERIFY ENVIRONMENT
-    # ========================================================
+    # --------------------------------------------------------
+    # VERIFY BUILD ENVIRONMENT
+    # --------------------------------------------------------
 
     - task: PowerShell@2
       displayName: 'Verify Build Environment'
@@ -85,40 +89,35 @@ stages:
           Write-Host "========================================"
           Write-Host "JAVA"
           Write-Host "========================================"
-
           java -version
 
           Write-Host ""
           Write-Host "========================================"
           Write-Host "MAVEN"
           Write-Host "========================================"
-
           mvn -version
 
           Write-Host ""
           Write-Host "========================================"
           Write-Host "NODE"
           Write-Host "========================================"
-
           node -v
 
           Write-Host ""
           Write-Host "========================================"
           Write-Host "NPM"
           Write-Host "========================================"
-
           npm -v
 
           Write-Host ""
           Write-Host "========================================"
           Write-Host "GIT"
           Write-Host "========================================"
-
           git --version
 
-    # ========================================================
+    # --------------------------------------------------------
     # FETCH JAVA 17 JRE
-    # ========================================================
+    # --------------------------------------------------------
 
     - task: PowerShell@2
       displayName: 'Fetch Java 17 JRE'
@@ -126,9 +125,9 @@ stages:
         targetType: 'filePath'
         filePath: '$(Build.SourcesDirectory)\build\fetch-jre.ps1'
 
-    # ========================================================
-    # PLAYWRIGHT
-    # ========================================================
+    # --------------------------------------------------------
+    # INSTALL PLAYWRIGHT CHROMIUM
+    # --------------------------------------------------------
 
     - task: PowerShell@2
       displayName: 'Install Playwright Chromium'
@@ -156,24 +155,24 @@ stages:
 
           Write-Host "Playwright installation SUCCESS"
 
-    # ========================================================
+    # --------------------------------------------------------
     # SONARCLOUD PREPARE
-    # ========================================================
+    # --------------------------------------------------------
 
     - task: SonarCloudPrepare@3
-      displayName: 'Prepare SonarCloud Analysis'
+      displayName: 'Prepare SonarQube Cloud Analysis'
       inputs:
         SonarCloud: 'SonarCloud-ServiceConnection'
-        organization: 'YOUR_SONARCLOUD_ORGANIZATION'
+        organization: 'shashimdevops'
         scannerMode: 'cli'
         configMode: 'manual'
-        cliProjectKey: 'ADO-Shashi'
+        cliProjectKey: 'shashimdevops_ADO-Shashi'
         cliProjectName: 'ADO-Shashi'
         cliSources: '.'
 
-    # ========================================================
-    # BACKEND
-    # ========================================================
+    # --------------------------------------------------------
+    # BUILD BACKEND
+    # --------------------------------------------------------
 
     - task: CmdLine@2
       displayName: 'Build Backend'
@@ -193,9 +192,9 @@ stages:
 
           echo Backend build SUCCESS
 
-    # ========================================================
-    # MOCK SERVER
-    # ========================================================
+    # --------------------------------------------------------
+    # BUILD MOCK SERVER
+    # --------------------------------------------------------
 
     - task: CmdLine@2
       displayName: 'Build Mock Server'
@@ -215,9 +214,9 @@ stages:
 
           echo Mock server build SUCCESS
 
-    # ========================================================
-    # FRONTEND
-    # ========================================================
+    # --------------------------------------------------------
+    # BUILD FRONTEND
+    # --------------------------------------------------------
 
     - task: PowerShell@2
       displayName: 'Build Frontend'
@@ -245,25 +244,25 @@ stages:
 
           Write-Host "Frontend build SUCCESS"
 
-    # ========================================================
+    # --------------------------------------------------------
     # SONARCLOUD ANALYZE
-    # ========================================================
+    # --------------------------------------------------------
 
     - task: SonarCloudAnalyze@3
-      displayName: 'Run SonarCloud Analysis'
+      displayName: 'Run SonarQube Cloud Analysis'
 
-    # ========================================================
+    # --------------------------------------------------------
     # SONARCLOUD PUBLISH
-    # ========================================================
+    # --------------------------------------------------------
 
     - task: SonarCloudPublish@3
-      displayName: 'Publish SonarCloud Results'
+      displayName: 'Publish SonarQube Cloud Results'
       inputs:
         pollingTimeoutSec: '300'
 
-    # ========================================================
-    # ELECTRON
-    # ========================================================
+    # --------------------------------------------------------
+    # BUILD ELECTRON APPLICATION
+    # --------------------------------------------------------
 
     - task: PowerShell@2
       displayName: 'Build Electron Application'
@@ -291,9 +290,9 @@ stages:
 
           Write-Host "Electron build SUCCESS"
 
-    # ========================================================
-    # VERIFY EXE
-    # ========================================================
+    # --------------------------------------------------------
+    # VERIFY EXE ARTIFACTS
+    # --------------------------------------------------------
 
     - task: PowerShell@2
       displayName: 'Verify EXE Artifacts'
@@ -307,13 +306,22 @@ stages:
 
           $dist = "$(Build.SourcesDirectory)\dist"
 
+          Write-Host "Dist directory:"
+          Write-Host $dist
+
           if (-not (Test-Path $dist)) {
               Write-Error "dist directory does not exist"
               exit 1
           }
 
+          Write-Host ""
+          Write-Host "===== BUILD ARTIFACTS ====="
+
           Get-ChildItem $dist -Recurse -File |
               Select-Object FullName, Length
+
+          Write-Host ""
+          Write-Host "===== SEARCHING FOR EXE FILES ====="
 
           $exeFiles = @(Get-ChildItem `
               -Path $dist `
@@ -327,18 +335,21 @@ stages:
           }
 
           Write-Host ""
-          Write-Host "===== EXE FILES ====="
+          Write-Host "===== EXE ARTIFACTS FOUND ====="
 
           foreach ($exe in $exeFiles) {
-              Write-Host $exe.FullName
+              Write-Host "----------------------------------------"
+              Write-Host "File : $($exe.FullName)"
+              Write-Host "Size : $($exe.Length) bytes"
+              Write-Host "----------------------------------------"
           }
 
           Write-Host ""
           Write-Host "Artifact verification SUCCESS"
 
-    # ========================================================
-    # PIPELINE ARTIFACT
-    # ========================================================
+    # --------------------------------------------------------
+    # PUBLISH PIPELINE ARTIFACT
+    # --------------------------------------------------------
 
     - task: PublishPipelineArtifact@1
       displayName: 'Publish EXE Artifact'
@@ -347,9 +358,9 @@ stages:
         artifact: 'Naukri-EXE'
         publishLocation: 'pipeline'
 
-    # ========================================================
-    # AZURE BLOB UPLOAD
-    # ========================================================
+    # --------------------------------------------------------
+    # UPLOAD EXE TO AZURE BLOB STORAGE
+    # --------------------------------------------------------
 
     - task: AzureCLI@2
       displayName: 'Upload EXE to Azure Blob Storage'
@@ -372,7 +383,7 @@ stages:
           Write-Host "Source          : $source"
 
           if (-not (Test-Path $source)) {
-              Write-Error "Source directory does not exist"
+              Write-Error "Source directory does not exist: $source"
               exit 1
           }
 
