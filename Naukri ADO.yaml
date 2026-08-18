@@ -1,0 +1,231 @@
+trigger: none
+
+pool:
+  name: Shashi_Pool
+
+variables:
+  azureServiceConnection: 'shashi-service-hp'
+  storageAccount: 'maskisa'
+  storageContainer: 'smcont'
+
+stages:
+
+- stage: Build
+  displayName: Naukri CI Build
+
+  jobs:
+  - job: BuildJob
+    displayName: Build Application
+
+    steps:
+
+    - checkout: self
+
+    - task: CmdLine@2
+      displayName: 'Verify ADO Checkout'
+      inputs:
+        script: |
+          echo Build Sources Directory:
+          echo $(Build.SourcesDirectory)
+
+          echo.
+          echo Repository Files:
+          dir "$(Build.SourcesDirectory)"
+
+          echo.
+          echo Build Directory:
+          dir "$(Build.SourcesDirectory)\build"
+
+          echo.
+          echo Fetch JRE Script:
+          dir "$(Build.SourcesDirectory)\build\fetch-jre.ps1"
+
+    - task: CmdLine@2
+      displayName: 'Verify Environment'
+      inputs:
+        script: |
+          echo ===== JAVA =====
+          java -version
+
+          echo ===== MAVEN =====
+          mvn -version
+
+          echo ===== NODE =====
+          node -v
+
+          echo ===== NPM =====
+          npm -v
+
+          echo ===== GIT =====
+          git --version
+
+    - task: PowerShell@2
+      displayName: 'Fetch Java 17 JRE'
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host "===== FETCH APPLICATION JRE ====="
+
+          $script = "$(Build.SourcesDirectory)\build\fetch-jre.ps1"
+
+          Write-Host "Script path: $script"
+
+          if (-not (Test-Path $script)) {
+              Write-Error "fetch-jre.ps1 not found"
+              exit 1
+          }
+
+          Write-Host "fetch-jre.ps1 found"
+
+          & $script
+
+          if ($LASTEXITCODE -ne 0) {
+              Write-Error "fetch-jre.ps1 failed with exit code $LASTEXITCODE"
+              exit $LASTEXITCODE
+          }
+
+          Write-Host "Java 17 JRE fetch completed successfully"
+
+    - task: PowerShell@2
+      displayName: 'Install Playwright Chromium'
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host "===== INSTALL PLAYWRIGHT CHROMIUM ====="
+
+          $script = "$(Build.SourcesDirectory)\build\install-playwright.ps1"
+
+          if (-not (Test-Path $script)) {
+              Write-Error "install-playwright.ps1 not found"
+              exit 1
+          }
+
+          & $script
+
+          if ($LASTEXITCODE -ne 0) {
+              Write-Error "install-playwright.ps1 failed with exit code $LASTEXITCODE"
+              exit $LASTEXITCODE
+          }
+
+    - task: CmdLine@2
+      displayName: 'Build Backend'
+      inputs:
+        script: |
+          mvn -f backend\pom.xml clean package -DskipTests -Dmaven.test.skip=true
+
+    - task: CmdLine@2
+      displayName: 'Build Mock Server'
+      inputs:
+        script: |
+          mvn -f mock-naukri\pom.xml clean package -DskipTests -Dmaven.test.skip=true
+
+    - task: PowerShell@2
+      displayName: 'Build Frontend'
+      inputs:
+        targetType: 'inline'
+        script: |
+          $script = "$(Build.SourcesDirectory)\build\phases\build-frontend.ps1"
+
+          if (-not (Test-Path $script)) {
+              Write-Error "build-frontend.ps1 not found"
+              exit 1
+          }
+
+          & $script
+
+          if ($LASTEXITCODE -ne 0) {
+              Write-Error "build-frontend.ps1 failed with exit code $LASTEXITCODE"
+              exit $LASTEXITCODE
+          }
+
+    - task: SonarQubePrepare@7
+      displayName: 'Prepare SonarQube Analysis'
+      inputs:
+        SonarQube: 'SonarQube-Server-VM'
+        scannerMode: 'cli'
+        configMode: 'manual'
+        cliProjectKey: 'ADO-Shashi'
+        cliProjectName: 'ADO-Shashi'
+        cliSources: '.'
+
+    - task: SonarQubeAnalyze@7
+      displayName: 'Run SonarQube Analysis'
+
+    - task: SonarQubePublish@7
+      displayName: 'Publish SonarQube Results'
+      inputs:
+        pollingTimeoutSec: '300'
+
+    - task: PowerShell@2
+      displayName: 'Build Electron Application'
+      inputs:
+        targetType: 'inline'
+        script: |
+          $script = "$(Build.SourcesDirectory)\build\phases\build-electron.ps1"
+
+          if (-not (Test-Path $script)) {
+              Write-Error "build-electron.ps1 not found"
+              exit 1
+          }
+
+          & $script -Variant Ship
+
+          if ($LASTEXITCODE -ne 0) {
+              Write-Error "build-electron.ps1 failed with exit code $LASTEXITCODE"
+              exit $LASTEXITCODE
+          }
+
+    - task: PowerShell@2
+      displayName: 'Verify EXE Artifacts'
+      inputs:
+        targetType: 'inline'
+        script: |
+          $dist = "$(Build.SourcesDirectory)\dist"
+
+          Write-Host "Dist directory: $dist"
+
+          if (-not (Test-Path $dist)) {
+              Write-Error "dist directory does not exist"
+              exit 1
+          }
+
+          Write-Host "===== BUILD ARTIFACTS ====="
+
+          Get-ChildItem $dist -Recurse -File |
+              Select-Object FullName, Length
+
+          $exeFiles = @(Get-ChildItem $dist -Recurse -Filter "*.exe")
+
+          if ($exeFiles.Count -eq 0) {
+              Write-Error "No EXE artifacts found"
+              exit 1
+          }
+
+          Write-Host "===== EXE ARTIFACTS FOUND ====="
+
+          foreach ($exe in $exeFiles) {
+              Write-Host $exe.FullName
+          }
+
+          Write-Host "Artifact verification SUCCESS"
+
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish EXE Artifact'
+      inputs:
+        targetPath: '$(Build.SourcesDirectory)\dist'
+        artifact: 'Naukri-EXE'
+        publishLocation: 'pipeline'
+
+    - task: AzureCLI@2
+      displayName: 'Upload EXE to Azure Blob Storage'
+      inputs:
+        azureSubscription: '$(azureServiceConnection)'
+        scriptType: 'ps'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          az storage blob upload-batch `
+            --account-name "$(storageAccount)" `
+            --destination "$(storageContainer)" `
+            --source "$(Build.SourcesDirectory)\dist" `
+            --pattern "*.exe" `
+            --auth-mode login
