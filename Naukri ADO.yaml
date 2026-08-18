@@ -160,7 +160,7 @@ stages:
     # ========================================================
 
     - task: SonarCloudPrepare@3
-      displayName: 'Prepare SonarQube Cloud Analysis'
+      displayName: 'Prepare SonarCloud Analysis'
       inputs:
         SonarCloud: 'SonarCloud-ServiceConnection'
         organization: 'shashimdevops'
@@ -256,14 +256,14 @@ stages:
     # ========================================================
 
     - task: SonarCloudAnalyze@3
-      displayName: 'Run SonarQube Cloud Analysis'
+      displayName: 'Run SonarCloud Analysis'
 
     # ========================================================
-    # SONARCLOUD PUBLISH
+    # SONARCLOUD QUALITY GATE
     # ========================================================
 
     - task: SonarCloudPublish@3
-      displayName: 'Publish SonarQube Cloud Results'
+      displayName: 'Check SonarCloud Quality Gate'
       inputs:
         pollingTimeoutSec: '300'
 
@@ -313,9 +313,6 @@ stages:
 
           $dist = "$(Build.SourcesDirectory)\dist"
 
-          Write-Host "Dist directory:"
-          Write-Host $dist
-
           if (-not (Test-Path $dist)) {
               Write-Error "dist directory does not exist"
               exit 1
@@ -330,28 +327,28 @@ stages:
           Write-Host ""
           Write-Host "===== SEARCHING FOR EXE FILES ====="
 
-          $exeFiles = @(Get-ChildItem `
-              -Path $dist `
-              -Recurse `
-              -Filter "*.exe" `
-              -File)
+          $exeFiles = @(
+              Get-ChildItem `
+                  -Path $dist `
+                  -Recurse `
+                  -Filter "*.exe" `
+                  -File
+          )
 
           if ($exeFiles.Count -eq 0) {
               Write-Error "No EXE artifacts found"
               exit 1
           }
 
-          Write-Host ""
-          Write-Host "===== EXE ARTIFACTS FOUND ====="
-
           foreach ($exe in $exeFiles) {
+
               Write-Host "----------------------------------------"
               Write-Host "File : $($exe.FullName)"
               Write-Host "Size : $($exe.Length) bytes"
               Write-Host "----------------------------------------"
+
           }
 
-          Write-Host ""
           Write-Host "Artifact verification SUCCESS"
 
     # ========================================================
@@ -394,11 +391,13 @@ stages:
               exit 1
           }
 
-          $exeFiles = @(Get-ChildItem `
-              -Path $source `
-              -Recurse `
-              -Filter "*.exe" `
-              -File)
+          $exeFiles = @(
+              Get-ChildItem `
+                  -Path $source `
+                  -Recurse `
+                  -Filter "*.exe" `
+                  -File
+          )
 
           if ($exeFiles.Count -eq 0) {
               Write-Error "No EXE files found for upload"
@@ -411,9 +410,6 @@ stages:
           foreach ($exe in $exeFiles) {
               Write-Host $exe.FullName
           }
-
-          Write-Host ""
-          Write-Host "Starting Azure Blob upload..."
 
           az storage blob upload-batch `
             --account-name "$storageAccount" `
@@ -432,3 +428,136 @@ stages:
           Write-Host "========================================"
           Write-Host "AZURE BLOB UPLOAD SUCCESS"
           Write-Host "========================================"
+
+
+# ============================================================
+# DEPLOYMENT STAGE
+# ENVIRONMENT APPROVAL & CHECKS
+# ============================================================
+
+- stage: Deploy
+  displayName: 'Naukri Release Deployment'
+
+  dependsOn: Build
+  condition: succeeded()
+
+  jobs:
+
+  - deployment: DeployNaukri
+    displayName: 'Deploy Naukri EXE'
+
+    # ========================================================
+    # ADO ENVIRONMENT GATE
+    # ========================================================
+
+    environment: 'Naukri-Prod'
+
+    strategy:
+
+      runOnce:
+
+        deploy:
+
+          steps:
+
+          # ==================================================
+          # DOWNLOAD ARTIFACT
+          # ==================================================
+
+          - download: current
+            artifact: 'Naukri-EXE'
+
+          # ==================================================
+          # VERIFY APPROVED ARTIFACT
+          # ==================================================
+
+          - task: PowerShell@2
+            displayName: 'Verify Approved Deployment Artifact'
+            inputs:
+              targetType: 'inline'
+              script: |
+
+                Write-Host "========================================"
+                Write-Host "ENVIRONMENT APPROVAL RECEIVED"
+                Write-Host "========================================"
+
+                Write-Host "Environment : Naukri-Prod"
+                Write-Host "Deployment is starting..."
+
+                $artifactPath = "$(Pipeline.Workspace)\Naukri-EXE"
+
+                Write-Host ""
+                Write-Host "Artifact Path:"
+                Write-Host $artifactPath
+
+                if (-not (Test-Path $artifactPath)) {
+                    Write-Error "Deployment artifact not found"
+                    exit 1
+                }
+
+                Write-Host ""
+                Write-Host "===== EXE FILES READY FOR DEPLOYMENT ====="
+
+                $exeFiles = @(
+                    Get-ChildItem `
+                        -Path $artifactPath `
+                        -Recurse `
+                        -Filter "*.exe" `
+                        -File
+                )
+
+                if ($exeFiles.Count -eq 0) {
+                    Write-Error "No EXE files found in deployment artifact"
+                    exit 1
+                }
+
+                foreach ($exe in $exeFiles) {
+
+                    Write-Host "----------------------------------------"
+                    Write-Host "File : $($exe.FullName)"
+                    Write-Host "Size : $($exe.Length) bytes"
+                    Write-Host "----------------------------------------"
+
+                }
+
+                Write-Host ""
+                Write-Host "Artifact verification SUCCESS"
+
+
+          # ==================================================
+          # DEPLOYMENT PLACEHOLDER
+          # ==================================================
+
+          - task: PowerShell@2
+            displayName: 'Deploy Naukri Application'
+            inputs:
+              targetType: 'inline'
+              script: |
+
+                Write-Host "========================================"
+                Write-Host "DEPLOYMENT STARTED"
+                Write-Host "========================================"
+
+                Write-Host "Environment approval completed."
+
+                $artifactPath = "$(Pipeline.Workspace)\Naukri-EXE"
+
+                Write-Host "Deploying artifacts from:"
+                Write-Host $artifactPath
+
+                # ------------------------------------------------
+                # ADD YOUR ACTUAL DEPLOYMENT COMMAND HERE
+                # ------------------------------------------------
+
+                # Example:
+                #
+                # Copy-Item `
+                #   -Path "$artifactPath\*" `
+                #   -Destination "C:\Naukri\Application" `
+                #   -Recurse `
+                #   -Force
+
+                Write-Host ""
+                Write-Host "========================================"
+                Write-Host "NAUKRI DEPLOYMENT SUCCESS"
+                Write-Host "========================================"
