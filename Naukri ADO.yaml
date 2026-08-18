@@ -10,10 +10,6 @@ variables:
 
 stages:
 
-# ============================================================
-# BUILD STAGE
-# ============================================================
-
 - stage: Build
   displayName: 'Naukri CI Build'
 
@@ -24,16 +20,16 @@ stages:
 
     steps:
 
-    # --------------------------------------------------------
+    # ========================================================
     # CHECKOUT
-    # --------------------------------------------------------
+    # ========================================================
 
     - checkout: self
       clean: true
 
-    # --------------------------------------------------------
+    # ========================================================
     # VERIFY CHECKOUT
-    # --------------------------------------------------------
+    # ========================================================
 
     - task: PowerShell@2
       displayName: 'Verify ADO Checkout'
@@ -54,6 +50,7 @@ stages:
 
           Write-Host ""
           Write-Host "Build Directory:"
+
           $buildDir = "$(Build.SourcesDirectory)\build"
 
           if (-not (Test-Path $buildDir)) {
@@ -64,7 +61,7 @@ stages:
           Get-ChildItem $buildDir
 
           Write-Host ""
-          Write-Host "Fetch JRE Script:"
+          Write-Host "Checking fetch-jre.ps1..."
 
           $jreScript = "$(Build.SourcesDirectory)\build\fetch-jre.ps1"
 
@@ -75,9 +72,9 @@ stages:
 
           Write-Host "Found: $jreScript"
 
-    # --------------------------------------------------------
+    # ========================================================
     # VERIFY ENVIRONMENT
-    # --------------------------------------------------------
+    # ========================================================
 
     - task: PowerShell@2
       displayName: 'Verify Build Environment'
@@ -88,35 +85,40 @@ stages:
           Write-Host "========================================"
           Write-Host "JAVA"
           Write-Host "========================================"
+
           java -version
 
           Write-Host ""
           Write-Host "========================================"
           Write-Host "MAVEN"
           Write-Host "========================================"
+
           mvn -version
 
           Write-Host ""
           Write-Host "========================================"
           Write-Host "NODE"
           Write-Host "========================================"
+
           node -v
 
           Write-Host ""
           Write-Host "========================================"
           Write-Host "NPM"
           Write-Host "========================================"
+
           npm -v
 
           Write-Host ""
           Write-Host "========================================"
           Write-Host "GIT"
           Write-Host "========================================"
+
           git --version
 
-    # --------------------------------------------------------
+    # ========================================================
     # FETCH JAVA 17 JRE
-    # --------------------------------------------------------
+    # ========================================================
 
     - task: PowerShell@2
       displayName: 'Fetch Java 17 JRE'
@@ -124,9 +126,9 @@ stages:
         targetType: 'filePath'
         filePath: '$(Build.SourcesDirectory)\build\fetch-jre.ps1'
 
-    # --------------------------------------------------------
-    # INSTALL PLAYWRIGHT CHROMIUM
-    # --------------------------------------------------------
+    # ========================================================
+    # PLAYWRIGHT
+    # ========================================================
 
     - task: PowerShell@2
       displayName: 'Install Playwright Chromium'
@@ -145,39 +147,39 @@ stages:
               exit 1
           }
 
-          Write-Host "Running: $script"
-
           & $script
 
           if ($LASTEXITCODE -ne 0) {
-              Write-Error "install-playwright.ps1 failed with exit code $LASTEXITCODE"
+              Write-Error "Playwright installation failed"
               exit $LASTEXITCODE
           }
 
-          Write-Host "Playwright Chromium installation SUCCESS"
+          Write-Host "Playwright installation SUCCESS"
 
-    # --------------------------------------------------------
-    # SONARQUBE PREPARE
-    # --------------------------------------------------------
+    # ========================================================
+    # SONARCLOUD PREPARE
+    # ========================================================
 
-    - task: SonarQubePrepare@7
-      displayName: 'Prepare SonarQube Analysis'
+    - task: SonarCloudPrepare@3
+      displayName: 'Prepare SonarCloud Analysis'
       inputs:
-        SonarQube: 'SonarQube-Server-VM'
+        SonarCloud: 'SonarCloud-ServiceConnection'
+        organization: 'YOUR_SONARCLOUD_ORGANIZATION'
         scannerMode: 'cli'
         configMode: 'manual'
         cliProjectKey: 'ADO-Shashi'
         cliProjectName: 'ADO-Shashi'
         cliSources: '.'
 
-    # --------------------------------------------------------
-    # BUILD BACKEND
-    # --------------------------------------------------------
+    # ========================================================
+    # BACKEND
+    # ========================================================
 
     - task: CmdLine@2
       displayName: 'Build Backend'
       inputs:
         script: |
+
           echo ========================================
           echo BUILD BACKEND
           echo ========================================
@@ -191,14 +193,15 @@ stages:
 
           echo Backend build SUCCESS
 
-    # --------------------------------------------------------
-    # BUILD MOCK SERVER
-    # --------------------------------------------------------
+    # ========================================================
+    # MOCK SERVER
+    # ========================================================
 
     - task: CmdLine@2
       displayName: 'Build Mock Server'
       inputs:
         script: |
+
           echo ========================================
           echo BUILD MOCK SERVER
           echo ========================================
@@ -212,9 +215,9 @@ stages:
 
           echo Mock server build SUCCESS
 
-    # --------------------------------------------------------
-    # BUILD FRONTEND
-    # --------------------------------------------------------
+    # ========================================================
+    # FRONTEND
+    # ========================================================
 
     - task: PowerShell@2
       displayName: 'Build Frontend'
@@ -236,31 +239,31 @@ stages:
           & $script
 
           if ($LASTEXITCODE -ne 0) {
-              Write-Error "build-frontend.ps1 failed with exit code $LASTEXITCODE"
+              Write-Error "Frontend build failed"
               exit $LASTEXITCODE
           }
 
           Write-Host "Frontend build SUCCESS"
 
-    # --------------------------------------------------------
-    # SONARQUBE ANALYSIS
-    # --------------------------------------------------------
+    # ========================================================
+    # SONARCLOUD ANALYZE
+    # ========================================================
 
-    - task: SonarQubeAnalyze@7
-      displayName: 'Run SonarQube Analysis'
+    - task: SonarCloudAnalyze@3
+      displayName: 'Run SonarCloud Analysis'
 
-    # --------------------------------------------------------
-    # SONARQUBE PUBLISH
-    # --------------------------------------------------------
+    # ========================================================
+    # SONARCLOUD PUBLISH
+    # ========================================================
 
-    - task: SonarQubePublish@7
-      displayName: 'Publish SonarQube Results'
+    - task: SonarCloudPublish@3
+      displayName: 'Publish SonarCloud Results'
       inputs:
         pollingTimeoutSec: '300'
 
-    # --------------------------------------------------------
-    # BUILD ELECTRON APPLICATION
-    # --------------------------------------------------------
+    # ========================================================
+    # ELECTRON
+    # ========================================================
 
     - task: PowerShell@2
       displayName: 'Build Electron Application'
@@ -279,20 +282,18 @@ stages:
               exit 1
           }
 
-          Write-Host "Running Electron build..."
-
           & $script -Variant Ship
 
           if ($LASTEXITCODE -ne 0) {
-              Write-Error "build-electron.ps1 failed with exit code $LASTEXITCODE"
+              Write-Error "Electron build failed"
               exit $LASTEXITCODE
           }
 
           Write-Host "Electron build SUCCESS"
 
-    # --------------------------------------------------------
-    # VERIFY EXE ARTIFACTS
-    # --------------------------------------------------------
+    # ========================================================
+    # VERIFY EXE
+    # ========================================================
 
     - task: PowerShell@2
       displayName: 'Verify EXE Artifacts'
@@ -306,22 +307,13 @@ stages:
 
           $dist = "$(Build.SourcesDirectory)\dist"
 
-          Write-Host "Dist directory:"
-          Write-Host $dist
-
           if (-not (Test-Path $dist)) {
               Write-Error "dist directory does not exist"
               exit 1
           }
 
-          Write-Host ""
-          Write-Host "===== ALL BUILD ARTIFACTS ====="
-
           Get-ChildItem $dist -Recurse -File |
               Select-Object FullName, Length
-
-          Write-Host ""
-          Write-Host "===== SEARCHING FOR EXE FILES ====="
 
           $exeFiles = @(Get-ChildItem `
               -Path $dist `
@@ -335,22 +327,18 @@ stages:
           }
 
           Write-Host ""
-          Write-Host "===== EXE ARTIFACTS FOUND ====="
+          Write-Host "===== EXE FILES ====="
 
           foreach ($exe in $exeFiles) {
-
-              Write-Host "----------------------------------------"
-              Write-Host "File   : $($exe.FullName)"
-              Write-Host "Size   : $($exe.Length) bytes"
-              Write-Host "----------------------------------------"
+              Write-Host $exe.FullName
           }
 
           Write-Host ""
           Write-Host "Artifact verification SUCCESS"
 
-    # --------------------------------------------------------
-    # PUBLISH PIPELINE ARTIFACT
-    # --------------------------------------------------------
+    # ========================================================
+    # PIPELINE ARTIFACT
+    # ========================================================
 
     - task: PublishPipelineArtifact@1
       displayName: 'Publish EXE Artifact'
@@ -359,9 +347,9 @@ stages:
         artifact: 'Naukri-EXE'
         publishLocation: 'pipeline'
 
-    # --------------------------------------------------------
-    # UPLOAD EXE TO AZURE BLOB STORAGE
-    # --------------------------------------------------------
+    # ========================================================
+    # AZURE BLOB UPLOAD
+    # ========================================================
 
     - task: AzureCLI@2
       displayName: 'Upload EXE to Azure Blob Storage'
@@ -384,12 +372,9 @@ stages:
           Write-Host "Source          : $source"
 
           if (-not (Test-Path $source)) {
-              Write-Error "Source directory does not exist: $source"
+              Write-Error "Source directory does not exist"
               exit 1
           }
-
-          Write-Host ""
-          Write-Host "EXE files to upload:"
 
           $exeFiles = @(Get-ChildItem `
               -Path $source `
@@ -401,6 +386,9 @@ stages:
               Write-Error "No EXE files found for upload"
               exit 1
           }
+
+          Write-Host ""
+          Write-Host "EXE files to upload:"
 
           foreach ($exe in $exeFiles) {
               Write-Host $exe.FullName
@@ -418,7 +406,7 @@ stages:
             --overwrite true
 
           if ($LASTEXITCODE -ne 0) {
-              Write-Error "Azure Blob upload FAILED with exit code $LASTEXITCODE"
+              Write-Error "Azure Blob upload FAILED"
               exit $LASTEXITCODE
           }
 
