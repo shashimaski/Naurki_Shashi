@@ -10,95 +10,142 @@ variables:
 
 stages:
 
+# ============================================================
+# BUILD STAGE
+# ============================================================
+
 - stage: Build
-  displayName: Naukri CI Build
+  displayName: 'Naukri CI Build'
 
   jobs:
+
   - job: BuildJob
-    displayName: Build Application
+    displayName: 'Build Application'
 
     steps:
 
-    - checkout: self
+    # --------------------------------------------------------
+    # CHECKOUT
+    # --------------------------------------------------------
 
-    - task: CmdLine@2
+    - checkout: self
+      clean: true
+
+    # --------------------------------------------------------
+    # VERIFY CHECKOUT
+    # --------------------------------------------------------
+
+    - task: PowerShell@2
       displayName: 'Verify ADO Checkout'
       inputs:
+        targetType: 'inline'
         script: |
-          echo Build Sources Directory:
-          echo $(Build.SourcesDirectory)
 
-          echo.
-          echo Repository Files:
-          dir "$(Build.SourcesDirectory)"
+          Write-Host "========================================"
+          Write-Host "ADO CHECKOUT VERIFICATION"
+          Write-Host "========================================"
 
-          echo.
-          echo Build Directory:
-          dir "$(Build.SourcesDirectory)\build"
+          Write-Host "Build Sources Directory:"
+          Write-Host "$(Build.SourcesDirectory)"
 
-          echo.
-          echo Fetch JRE Script:
-          dir "$(Build.SourcesDirectory)\build\fetch-jre.ps1"
+          Write-Host ""
+          Write-Host "Repository Files:"
+          Get-ChildItem "$(Build.SourcesDirectory)"
 
-    - task: CmdLine@2
-      displayName: 'Verify Environment'
+          Write-Host ""
+          Write-Host "Build Directory:"
+          $buildDir = "$(Build.SourcesDirectory)\build"
+
+          if (-not (Test-Path $buildDir)) {
+              Write-Error "Build directory not found: $buildDir"
+              exit 1
+          }
+
+          Get-ChildItem $buildDir
+
+          Write-Host ""
+          Write-Host "Fetch JRE Script:"
+
+          $jreScript = "$(Build.SourcesDirectory)\build\fetch-jre.ps1"
+
+          if (-not (Test-Path $jreScript)) {
+              Write-Error "fetch-jre.ps1 not found: $jreScript"
+              exit 1
+          }
+
+          Write-Host "Found: $jreScript"
+
+    # --------------------------------------------------------
+    # VERIFY ENVIRONMENT
+    # --------------------------------------------------------
+
+    - task: PowerShell@2
+      displayName: 'Verify Build Environment'
       inputs:
+        targetType: 'inline'
         script: |
-          echo ===== JAVA =====
+
+          Write-Host "========================================"
+          Write-Host "JAVA"
+          Write-Host "========================================"
           java -version
 
-          echo ===== MAVEN =====
+          Write-Host ""
+          Write-Host "========================================"
+          Write-Host "MAVEN"
+          Write-Host "========================================"
           mvn -version
 
-          echo ===== NODE =====
+          Write-Host ""
+          Write-Host "========================================"
+          Write-Host "NODE"
+          Write-Host "========================================"
           node -v
 
-          echo ===== NPM =====
+          Write-Host ""
+          Write-Host "========================================"
+          Write-Host "NPM"
+          Write-Host "========================================"
           npm -v
 
-          echo ===== GIT =====
+          Write-Host ""
+          Write-Host "========================================"
+          Write-Host "GIT"
+          Write-Host "========================================"
           git --version
+
+    # --------------------------------------------------------
+    # FETCH JAVA 17 JRE
+    # --------------------------------------------------------
 
     - task: PowerShell@2
       displayName: 'Fetch Java 17 JRE'
       inputs:
-        targetType: 'inline'
-        script: |
-          Write-Host "===== FETCH APPLICATION JRE ====="
+        targetType: 'filePath'
+        filePath: '$(Build.SourcesDirectory)\build\fetch-jre.ps1'
 
-          $script = "$(Build.SourcesDirectory)\build\fetch-jre.ps1"
-
-          Write-Host "Script path: $script"
-
-          if (-not (Test-Path $script)) {
-              Write-Error "fetch-jre.ps1 not found"
-              exit 1
-          }
-
-          Write-Host "fetch-jre.ps1 found"
-
-          & $script
-
-          if ($LASTEXITCODE -ne 0) {
-              Write-Error "fetch-jre.ps1 failed with exit code $LASTEXITCODE"
-              exit $LASTEXITCODE
-          }
-
-          Write-Host "Java 17 JRE fetch completed successfully"
+    # --------------------------------------------------------
+    # INSTALL PLAYWRIGHT CHROMIUM
+    # --------------------------------------------------------
 
     - task: PowerShell@2
       displayName: 'Install Playwright Chromium'
       inputs:
         targetType: 'inline'
         script: |
-          Write-Host "===== INSTALL PLAYWRIGHT CHROMIUM ====="
+
+          Write-Host "========================================"
+          Write-Host "INSTALL PLAYWRIGHT CHROMIUM"
+          Write-Host "========================================"
 
           $script = "$(Build.SourcesDirectory)\build\install-playwright.ps1"
 
           if (-not (Test-Path $script)) {
-              Write-Error "install-playwright.ps1 not found"
+              Write-Error "install-playwright.ps1 not found: $script"
               exit 1
           }
+
+          Write-Host "Running: $script"
 
           & $script
 
@@ -107,36 +154,11 @@ stages:
               exit $LASTEXITCODE
           }
 
-    - task: CmdLine@2
-      displayName: 'Build Backend'
-      inputs:
-        script: |
-          mvn -f backend\pom.xml clean package -DskipTests -Dmaven.test.skip=true
+          Write-Host "Playwright Chromium installation SUCCESS"
 
-    - task: CmdLine@2
-      displayName: 'Build Mock Server'
-      inputs:
-        script: |
-          mvn -f mock-naukri\pom.xml clean package -DskipTests -Dmaven.test.skip=true
-
-    - task: PowerShell@2
-      displayName: 'Build Frontend'
-      inputs:
-        targetType: 'inline'
-        script: |
-          $script = "$(Build.SourcesDirectory)\build\phases\build-frontend.ps1"
-
-          if (-not (Test-Path $script)) {
-              Write-Error "build-frontend.ps1 not found"
-              exit 1
-          }
-
-          & $script
-
-          if ($LASTEXITCODE -ne 0) {
-              Write-Error "build-frontend.ps1 failed with exit code $LASTEXITCODE"
-              exit $LASTEXITCODE
-          }
+    # --------------------------------------------------------
+    # SONARQUBE PREPARE
+    # --------------------------------------------------------
 
     - task: SonarQubePrepare@7
       displayName: 'Prepare SonarQube Analysis'
@@ -148,25 +170,116 @@ stages:
         cliProjectName: 'ADO-Shashi'
         cliSources: '.'
 
+    # --------------------------------------------------------
+    # BUILD BACKEND
+    # --------------------------------------------------------
+
+    - task: CmdLine@2
+      displayName: 'Build Backend'
+      inputs:
+        script: |
+          echo ========================================
+          echo BUILD BACKEND
+          echo ========================================
+
+          mvn -f backend\pom.xml clean package -DskipTests -Dmaven.test.skip=true
+
+          if %ERRORLEVEL% NEQ 0 (
+              echo Backend build FAILED
+              exit /b %ERRORLEVEL%
+          )
+
+          echo Backend build SUCCESS
+
+    # --------------------------------------------------------
+    # BUILD MOCK SERVER
+    # --------------------------------------------------------
+
+    - task: CmdLine@2
+      displayName: 'Build Mock Server'
+      inputs:
+        script: |
+          echo ========================================
+          echo BUILD MOCK SERVER
+          echo ========================================
+
+          mvn -f mock-naukri\pom.xml clean package -DskipTests -Dmaven.test.skip=true
+
+          if %ERRORLEVEL% NEQ 0 (
+              echo Mock server build FAILED
+              exit /b %ERRORLEVEL%
+          )
+
+          echo Mock server build SUCCESS
+
+    # --------------------------------------------------------
+    # BUILD FRONTEND
+    # --------------------------------------------------------
+
+    - task: PowerShell@2
+      displayName: 'Build Frontend'
+      inputs:
+        targetType: 'inline'
+        script: |
+
+          Write-Host "========================================"
+          Write-Host "BUILD FRONTEND"
+          Write-Host "========================================"
+
+          $script = "$(Build.SourcesDirectory)\build\phases\build-frontend.ps1"
+
+          if (-not (Test-Path $script)) {
+              Write-Error "build-frontend.ps1 not found: $script"
+              exit 1
+          }
+
+          & $script
+
+          if ($LASTEXITCODE -ne 0) {
+              Write-Error "build-frontend.ps1 failed with exit code $LASTEXITCODE"
+              exit $LASTEXITCODE
+          }
+
+          Write-Host "Frontend build SUCCESS"
+
+    # --------------------------------------------------------
+    # SONARQUBE ANALYSIS
+    # --------------------------------------------------------
+
     - task: SonarQubeAnalyze@7
       displayName: 'Run SonarQube Analysis'
+
+    # --------------------------------------------------------
+    # SONARQUBE PUBLISH
+    # --------------------------------------------------------
 
     - task: SonarQubePublish@7
       displayName: 'Publish SonarQube Results'
       inputs:
         pollingTimeoutSec: '300'
 
+    # --------------------------------------------------------
+    # BUILD ELECTRON APPLICATION
+    # --------------------------------------------------------
+
     - task: PowerShell@2
       displayName: 'Build Electron Application'
       inputs:
         targetType: 'inline'
         script: |
+
+          Write-Host "========================================"
+          Write-Host "BUILD ELECTRON APPLICATION"
+          Write-Host "========================================"
+
           $script = "$(Build.SourcesDirectory)\build\phases\build-electron.ps1"
 
           if (-not (Test-Path $script)) {
-              Write-Error "build-electron.ps1 not found"
+              Write-Error "build-electron.ps1 not found: $script"
               exit 1
           }
+
+          Write-Host "Running Electron build..."
 
           & $script -Variant Ship
 
@@ -175,39 +288,69 @@ stages:
               exit $LASTEXITCODE
           }
 
+          Write-Host "Electron build SUCCESS"
+
+    # --------------------------------------------------------
+    # VERIFY EXE ARTIFACTS
+    # --------------------------------------------------------
+
     - task: PowerShell@2
       displayName: 'Verify EXE Artifacts'
       inputs:
         targetType: 'inline'
         script: |
+
+          Write-Host "========================================"
+          Write-Host "VERIFY EXE ARTIFACTS"
+          Write-Host "========================================"
+
           $dist = "$(Build.SourcesDirectory)\dist"
 
-          Write-Host "Dist directory: $dist"
+          Write-Host "Dist directory:"
+          Write-Host $dist
 
           if (-not (Test-Path $dist)) {
               Write-Error "dist directory does not exist"
               exit 1
           }
 
-          Write-Host "===== BUILD ARTIFACTS ====="
+          Write-Host ""
+          Write-Host "===== ALL BUILD ARTIFACTS ====="
 
           Get-ChildItem $dist -Recurse -File |
               Select-Object FullName, Length
 
-          $exeFiles = @(Get-ChildItem $dist -Recurse -Filter "*.exe")
+          Write-Host ""
+          Write-Host "===== SEARCHING FOR EXE FILES ====="
+
+          $exeFiles = @(Get-ChildItem `
+              -Path $dist `
+              -Recurse `
+              -Filter "*.exe" `
+              -File)
 
           if ($exeFiles.Count -eq 0) {
               Write-Error "No EXE artifacts found"
               exit 1
           }
 
+          Write-Host ""
           Write-Host "===== EXE ARTIFACTS FOUND ====="
 
           foreach ($exe in $exeFiles) {
-              Write-Host $exe.FullName
+
+              Write-Host "----------------------------------------"
+              Write-Host "File   : $($exe.FullName)"
+              Write-Host "Size   : $($exe.Length) bytes"
+              Write-Host "----------------------------------------"
           }
 
+          Write-Host ""
           Write-Host "Artifact verification SUCCESS"
+
+    # --------------------------------------------------------
+    # PUBLISH PIPELINE ARTIFACT
+    # --------------------------------------------------------
 
     - task: PublishPipelineArtifact@1
       displayName: 'Publish EXE Artifact'
@@ -216,6 +359,10 @@ stages:
         artifact: 'Naukri-EXE'
         publishLocation: 'pipeline'
 
+    # --------------------------------------------------------
+    # UPLOAD EXE TO AZURE BLOB STORAGE
+    # --------------------------------------------------------
+
     - task: AzureCLI@2
       displayName: 'Upload EXE to Azure Blob Storage'
       inputs:
@@ -223,9 +370,59 @@ stages:
         scriptType: 'ps'
         scriptLocation: 'inlineScript'
         inlineScript: |
+
+          Write-Host "========================================"
+          Write-Host "UPLOAD EXE TO AZURE BLOB STORAGE"
+          Write-Host "========================================"
+
+          $storageAccount = "$(storageAccount)"
+          $container = "$(storageContainer)"
+          $source = "$(Build.SourcesDirectory)\dist"
+
+          Write-Host "Storage Account : $storageAccount"
+          Write-Host "Container       : $container"
+          Write-Host "Source          : $source"
+
+          if (-not (Test-Path $source)) {
+              Write-Error "Source directory does not exist: $source"
+              exit 1
+          }
+
+          Write-Host ""
+          Write-Host "EXE files to upload:"
+
+          $exeFiles = @(Get-ChildItem `
+              -Path $source `
+              -Recurse `
+              -Filter "*.exe" `
+              -File)
+
+          if ($exeFiles.Count -eq 0) {
+              Write-Error "No EXE files found for upload"
+              exit 1
+          }
+
+          foreach ($exe in $exeFiles) {
+              Write-Host $exe.FullName
+          }
+
+          Write-Host ""
+          Write-Host "Starting Azure Blob upload..."
+
           az storage blob upload-batch `
-            --account-name "$(storageAccount)" `
-            --destination "$(storageContainer)" `
-            --source "$(Build.SourcesDirectory)\dist" `
+            --account-name "$storageAccount" `
+            --destination "$container" `
+            --source "$source" `
             --pattern "*.exe" `
-            --auth-mode login
+            --auth-mode login `
+            --overwrite true
+
+          if ($LASTEXITCODE -ne 0) {
+              Write-Error "Azure Blob upload FAILED with exit code $LASTEXITCODE"
+              exit $LASTEXITCODE
+          }
+
+          Write-Host ""
+          Write-Host "========================================"
+          Write-Host "AZURE BLOB UPLOAD SUCCESS"
+          Write-Host "========================================"
